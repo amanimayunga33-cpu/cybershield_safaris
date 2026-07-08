@@ -1,0 +1,2562 @@
+<!DOCTYPE html>
+<html lang="en" id="htmlRoot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Bus Booking System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#12213D;
+  --ink-2:#1D3059;
+  --paper:#F5F4EF;
+  --card:#FFFFFF;
+  --sun:#E2811E;
+  --sun-dark:#C56A12;
+  --gold:#D9A93B;
+  --gold-light:#F3D98B;
+  --gold-dark:#A8792A;
+  --safari:#2E6F51;
+  --safari-light:#E7F1EB;
+  --text:#232323;
+  --muted:#6B7280;
+  --line:#E1DED3;
+  --danger:#C1443C;
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--paper);
+  color:var(--text);
+  line-height:1.5;
+}
+h1,h2,h3,h4{font-family:'Sora',sans-serif;margin:0;color:var(--ink);}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:inherit;}
+button{font-family:'Inter',sans-serif;cursor:pointer;}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
+
+/* ===== Header ===== */
+header.topbar{
+  background:var(--ink);
+  color:#fff;
+  position:sticky;top:0;z-index:50;
+}
+.topbar-inner{
+  max-width:1200px;margin:0 auto;padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:.3px;}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--gold-light),var(--sun-dark));box-shadow:0 0 10px rgba(217,169,59,.7);}
+.brand small{display:block;font-family:'Inter';font-weight:500;font-size:11px;color:#B9C2D6;letter-spacing:.5px;}
+.top-actions{display:flex;align-items:center;gap:10px;}
+.lang-toggle{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;
+  border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;
+}
+.pill-btn{
+  border:none;border-radius:20px;padding:8px 16px;font-weight:600;font-size:13px;
+}
+.pill-btn.primary{background:var(--sun);color:#fff;}
+.pill-btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);}
+
+/* route-line decorative divider */
+.route-line{
+  height:30px;position:relative;overflow:hidden;background:linear-gradient(90deg,var(--ink-2),#24407A,var(--ink-2));
+}
+.route-line::before{
+  content:"";position:absolute;left:0;top:50%;width:200%;height:2px;
+  background:repeating-linear-gradient(90deg,#F3D98B77 0 14px, transparent 14px 26px);
+  transform:translateY(-50%);
+  animation:roll 6s linear infinite;
+}
+@keyframes roll{from{transform:translate(0,-50%);}to{transform:translate(-26px,-50%);}}
+.route-line .bus-emoji{
+  position:absolute;left:2%;top:50%;transform:translateY(-62%);width:34px;
+  animation:drive 7s linear infinite;
+}
+@keyframes drive{0%{left:2%;}100%{left:92%;}}
+.spin-wheel{transform-box:fill-box;transform-origin:center;animation:spin 1s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
+/* Hero visual */
+.hero{
+  background:linear-gradient(120deg,var(--ink) 0%, var(--ink-2) 55%, #24407A 100%);
+  color:#fff;border-radius:20px;padding:0;margin-bottom:30px;position:relative;overflow:hidden;
+  display:grid;grid-template-columns:1.15fr 1fr;align-items:stretch;
+}
+@media(max-width:860px){.hero{grid-template-columns:1fr;}}
+.hero-text{padding:44px 36px;position:relative;z-index:2;}
+.hero-text h1{color:#fff;font-size:33px;max-width:520px;line-height:1.16;text-shadow:0 2px 18px rgba(0,0,0,.35);}
+.hero-text p{color:#DCE3F2;max-width:500px;margin-top:12px;font-size:15px;text-shadow:0 1px 10px rgba(0,0,0,.3);}
+.hero .stat-row{display:flex;gap:24px;margin-top:22px;flex-wrap:wrap;}
+.hero .stat b{font-size:22px;display:block;font-family:'Sora';background:linear-gradient(120deg,var(--gold-light),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.hero .stat span{font-size:12px;color:#AEB9D2;}
+.hero-visual{
+  position:relative;background:linear-gradient(200deg,rgba(255,255,255,.05),rgba(0,0,0,.15));
+  display:flex;align-items:flex-end;justify-content:center;overflow:hidden;
+}
+.hero-visual::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at 70% 30%, rgba(217,169,59,.22), transparent 60%);
+}
+.hero-visual svg.hero-bus{width:92%;max-width:380px;position:relative;z-index:2;filter:drop-shadow(0 18px 24px rgba(0,0,0,.35));animation:heroFloat 4s ease-in-out infinite;}
+@keyframes heroFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.hero-road{position:absolute;bottom:0;left:0;right:0;height:14px;background:repeating-linear-gradient(90deg,#F3D98B 0 22px, transparent 22px 40px);opacity:.55;}
+
+/* Fleet strip */
+.fleet-strip{display:flex;gap:16px;overflow-x:auto;padding:6px 2px 18px;margin-bottom:8px;}
+.fleet-card{
+  flex:0 0 210px;background:linear-gradient(160deg,#fff,#FBF8F0);border:1px solid var(--line);border-radius:16px;
+  padding:16px 14px;text-align:center;transition:transform .25s ease, box-shadow .25s ease;
+}
+.fleet-card:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 14px 26px rgba(18,33,61,.12);border-color:var(--gold-light);}
+.fleet-card svg{width:100%;height:auto;margin-bottom:10px;}
+.fleet-card b{display:block;font-family:'Sora';font-size:13.5px;color:var(--ink);}
+.fleet-card span{font-size:11.5px;color:var(--muted);}
+
+/* ===== Nav tabs ===== */
+nav.tabs{
+  background:#fff;border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:40;
+}
+.tabs-inner{
+  max-width:1200px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;padding:6px 14px;
+  scrollbar-width:thin;-webkit-overflow-scrolling:touch;
+}
+.tab-btn{
+  border:none;background:transparent;color:var(--muted);padding:10px 14px;font-size:13.5px;
+  font-weight:600;border-radius:10px;white-space:nowrap;position:relative;transition:color .15s ease;
+}
+.tab-btn:hover{background:var(--safari-light);color:var(--safari);}
+.tab-btn.active{background:var(--ink);color:#fff;}
+.tab-btn.active::after{
+  content:"";position:absolute;left:14px;right:14px;bottom:2px;height:2px;
+  background:linear-gradient(90deg,var(--gold-light),var(--gold));border-radius:2px;
+}
+
+/* ===== Layout ===== */
+main{max-width:1200px;margin:0 auto;padding:28px 20px 80px;}
+.screen{display:none;animation:fadeIn .25s ease;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+.section-head{margin-bottom:22px;}
+.eyebrow{color:var(--sun-dark);font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;}
+.section-head h2{font-size:28px;margin-top:4px;}
+.section-head p{color:var(--muted);margin-top:6px;max-width:640px;}
+
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.card:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(18,33,61,.08);border-color:var(--gold-light);}
+.grid{display:grid;gap:18px;}
+.grid.cols-4{grid-template-columns:repeat(4,1fr);}
+.grid.cols-3{grid-template-columns:repeat(3,1fr);}
+.grid.cols-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:900px){.grid.cols-4,.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;}}
+@media(min-width:601px) and (max-width:900px){.grid.cols-4,.grid.cols-3{grid-template-columns:repeat(2,1fr);}}
+
+/* ===== Mobile & small-screen hardening ===== */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;}
+.table-scroll table{min-width:560px;}
+@media(max-width:600px){
+  main{padding:20px 14px 90px;}
+  .hero-text{padding:30px 22px;}
+  .hero-text h1{font-size:25px;}
+  .hero-text p{font-size:13.5px;}
+  .hero .stat-row{gap:14px;}
+  .hero .stat b{font-size:18px;}
+  .hero-visual{min-height:150px;}
+  .hero-visual svg.hero-bus{max-width:220px;}
+  .section-head h2{font-size:22px;}
+  #mapContainer{height:340px;}
+  .ticket{flex-direction:column;}
+  .ticket-stub{width:100%;flex-direction:row;justify-content:space-between;align-items:center;}
+  .ticket-stub::before,.ticket-stub::after{display:none;}
+  .ticket-divider{display:none;}
+  .ticket-grid{grid-template-columns:repeat(2,1fr);}
+  #toastBox{left:12px;right:12px;bottom:16px;max-width:none;}
+  #aiPanel{right:12px;left:12px;width:auto;max-width:none;bottom:88px;max-height:65vh;}
+  #aiToggle{right:16px;bottom:16px;width:54px;height:54px;font-size:20px;}
+  .topbar-inner{padding:12px 14px;}
+  .brand{font-size:17px;}
+  .brand small{display:none;}
+  .top-actions{gap:6px;}
+  .pill-btn,.lang-toggle{padding:7px 11px;font-size:12px;}
+  .fleet-card{flex:0 0 170px;}
+  footer .foot-inner{flex-direction:column;text-align:center;gap:14px;}
+}
+@media(max-width:380px){
+  .grid.cols-2{gap:12px;}
+  .hero-text h1{font-size:22px;}
+  .seat-map{grid-template-columns:repeat(4,46px);gap:8px 10px;}
+  .seat{width:46px;height:42px;font-size:11px;}
+}
+/* Touch-friendly tap targets everywhere */
+button, .tab-btn, input, select{min-height:40px;}
+input, select{font-size:16px;} /* prevents iOS auto-zoom on focus */
+
+label{display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+input,select{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
+  font-size:14px;background:#fff;color:var(--text);margin-bottom:14px;
+}
+input:focus,select:focus{outline:2px solid var(--sun);outline-offset:1px;}
+.btn{
+  border:none;border-radius:10px;padding:12px 20px;font-weight:700;font-size:14px;display:inline-flex;
+  align-items:center;gap:8px;position:relative;overflow:hidden;transition:transform .18s ease, box-shadow .18s ease;
+}
+.btn.block{width:100%;justify-content:center;}
+.btn-sun{background:linear-gradient(120deg,var(--sun) 0%, var(--gold) 55%, var(--sun-dark) 100%);color:#fff;box-shadow:0 4px 14px rgba(226,129,30,.28);}
+.btn-sun::after{
+  content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(120deg, transparent, rgba(255,255,255,.55), transparent);
+  transform:skewX(-20deg);
+}
+.btn-sun:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(226,129,30,.38);}
+.btn-sun:hover::after{animation:shimmer .9s ease;}
+@keyframes shimmer{from{left:-60%;}to{left:130%;}}
+.btn-ink{background:linear-gradient(120deg,var(--ink) 0%, var(--ink-2) 100%);color:#fff;}
+.btn-ink:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(18,33,61,.28);}
+.btn-outline{background:transparent;border:1.5px solid var(--ink);color:var(--ink);}
+.btn-outline:hover{background:rgba(217,169,59,.1);border-color:var(--gold-dark);}
+.btn-safari{background:linear-gradient(120deg,var(--safari) 0%, #3E8563 100%);color:#fff;}
+.btn-safari:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(46,111,81,.3);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+
+/* company chip */
+.company-card{display:flex;align-items:center;gap:12px;}
+.co-logo{
+  width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-weight:800;color:#fff;font-family:'Sora';font-size:16px;flex-shrink:0;
+}
+.co-name{font-weight:700;color:var(--ink);font-size:15px;}
+.co-meta{color:var(--muted);font-size:12.5px;}
+.badge{
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;
+}
+.badge.vip{background:#FBE8D3;color:var(--sun-dark);}
+.badge.ordinary{background:var(--safari-light);color:var(--safari);}
+
+/* trip result row */
+.trip-row{
+  display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px;
+  border:1px solid var(--line);border-radius:12px;margin-bottom:12px;background:#fff;flex-wrap:wrap;
+}
+.trip-route{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--ink);}
+.trip-route .arrow{color:var(--sun);}
+.trip-meta{color:var(--muted);font-size:12.5px;margin-top:4px;}
+.trip-fare{font-family:'Sora';font-weight:800;color:var(--ink);font-size:18px;}
+.trip-fare span{font-size:11px;color:var(--muted);font-weight:500;display:block;}
+
+/* seats */
+.seat-map{
+  display:grid;grid-template-columns:repeat(4,54px);gap:10px 14px;justify-content:center;margin:20px 0;
+}
+.seat{
+  width:54px;height:48px;border-radius:8px 8px 12px 12px;border:1.5px solid var(--line);
+  background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+  color:var(--muted);position:relative;
+}
+.seat.gap{visibility:hidden;}
+.seat.booked{background:#EDEBE4;color:#B4AFA1;border-color:#EDEBE4;cursor:not-allowed;}
+.seat.available:hover{border-color:var(--safari);color:var(--safari);}
+.seat.selected{background:var(--safari);color:#fff;border-color:var(--safari);}
+.seat-legend{display:flex;gap:18px;font-size:12.5px;color:var(--muted);justify-content:center;margin-top:6px;flex-wrap:wrap;}
+.legend-dot{width:12px;height:12px;border-radius:4px;display:inline-block;margin-right:6px;vertical-align:middle;}
+
+/* ticket stub */
+.ticket{
+  display:flex;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 18px rgba(18,33,61,.08);
+  margin-bottom:20px;border:1px solid var(--line);
+}
+.ticket-main{flex:1;padding:20px;}
+.ticket-stub{
+  width:150px;background:var(--ink);color:#fff;padding:18px 14px;position:relative;
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+.ticket-stub::before,.ticket-stub::after{
+  content:"";position:absolute;width:18px;height:18px;background:var(--paper);border-radius:50%;left:-9px;
+}
+.ticket-stub::before{top:-9px;}
+.ticket-stub::after{bottom:-9px;}
+.ticket-divider{
+  width:0;border-left:2px dashed #D8D4C7;
+}
+.ticket-code{font-family:'JetBrains Mono';font-weight:700;font-size:15px;letter-spacing:1px;}
+.ticket-route{font-family:'Sora';font-weight:800;font-size:18px;color:var(--ink);}
+.ticket-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+.ticket-grid div span{display:block;font-size:11px;color:var(--muted);font-weight:600;}
+.ticket-grid div b{font-family:'Sora';font-size:14px;color:var(--ink);}
+
+/* stands / offices */
+.list-card{border-left:4px solid var(--sun);}
+.list-card h4{font-size:15px;margin-bottom:4px;}
+.list-card p{margin:2px 0;color:var(--muted);font-size:13px;}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+table th{text-align:left;background:var(--ink);color:#fff;padding:10px 12px;font-family:'Sora';font-size:12px;}
+table td{padding:10px 12px;border-bottom:1px solid var(--line);}
+table tr:last-child td{border-bottom:none;}
+
+/* toast */
+#toastBox{position:fixed;bottom:24px;left:24px;z-index:200;display:flex;flex-direction:column;gap:10px;max-width:320px;}
+.toast{
+  background:var(--ink);color:#fff;padding:14px 16px;border-radius:12px;font-size:13px;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);border-left:4px solid var(--sun);animation:slideIn .3s ease;
+}
+.toast b{display:block;font-size:12px;color:var(--sun);margin-bottom:3px;letter-spacing:.5px;}
+@keyframes slideIn{from{transform:translateX(-30px);opacity:0;}to{transform:none;opacity:1;}}
+
+/* AI chat */
+#aiToggle{
+  position:fixed;bottom:24px;right:24px;z-index:210;background:var(--sun);color:#fff;border:none;
+  width:60px;height:60px;border-radius:50%;font-size:24px;box-shadow:0 10px 24px rgba(226,129,30,.45);
+}
+#aiPanel{
+  position:fixed;bottom:96px;right:24px;width:340px;max-height:480px;background:#fff;border-radius:16px;
+  box-shadow:0 20px 50px rgba(0,0,0,.25);z-index:210;display:none;flex-direction:column;overflow:hidden;
+  border:1px solid var(--line);
+}
+#aiPanel.open{display:flex;}
+.ai-head{background:var(--ink);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;}
+.ai-avatar{width:32px;height:32px;border-radius:50%;background:var(--sun);display:flex;align-items:center;justify-content:center;font-weight:800;}
+.ai-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#FAFAF7;}
+.msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.4;}
+.msg.bot{background:#fff;border:1px solid var(--line);align-self:flex-start;}
+.msg.user{background:var(--safari);color:#fff;align-self:flex-end;}
+.typing-dot{display:inline-block;animation:typingBlink 1.1s infinite;font-size:10px;color:var(--muted);}
+.typing-dot:nth-child(2){animation-delay:.15s;}
+.typing-dot:nth-child(3){animation-delay:.3s;}
+@keyframes typingBlink{0%,80%,100%{opacity:.2;}40%{opacity:1;}}
+.live-badge{display:inline-block;font-size:13px;font-weight:700;color:var(--danger);vertical-align:middle;margin-left:6px;}
+.live-badge::before{content:"";}
+.live-badge{animation:livePulse 1.4s ease-in-out infinite;}
+@keyframes livePulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.vaa-tab{border:none;background:#fff;border:1px solid var(--line);color:var(--muted);padding:9px 16px;font-size:13px;font-weight:700;border-radius:20px;white-space:nowrap;flex:0 0 auto;}
+.vaa-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.vaa-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.vaa-row:last-child{border-bottom:none;}
+.vaa-actions{display:flex;gap:6px;flex-shrink:0;}
+.vaa-actions button{padding:5px 10px;font-size:11.5px;border-radius:8px;}
+.ai-input{display:flex;border-top:1px solid var(--line);padding:8px;gap:6px;}
+.ai-input input{margin:0;flex:1;}
+.ai-input button{background:var(--sun);color:#fff;border:none;border-radius:10px;padding:0 14px;}
+
+footer{background:var(--ink);color:#B9C2D6;padding:30px 20px;margin-top:40px;font-size:13px;}
+footer .foot-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+
+.hidden{display:none !important;}
+.small-note{font-size:12px;color:var(--muted);margin-top:6px;}
+[data-i18n]{}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="dot"></span>Online Bus Booking System
+      <small data-i18n="tagline">Book your journey across Tanzania</small>
+    </div>
+    <div class="top-actions">
+      <button class="lang-toggle" onclick="toggleLang()" id="langBtn">🌐 Swahili</button>
+      <span id="userChip" class="pill-btn ghost hidden"></span>
+      <button class="pill-btn ghost" data-i18n="nav_login" onclick="showScreen('login')">Login</button>
+      <button class="pill-btn primary" data-i18n="nav_register" onclick="showScreen('register')">Register</button>
+    </div>
+  </div>
+  <div class="route-line">
+    <span class="bus-emoji">
+      <svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10,70 L10,40 Q10,25 28,22 L150,14 Q175,13 185,30 L205,55 Q210,62 205,68 L205,72 L10,72 Z" fill="#F3D98B"/>
+        <rect x="10" y="55" width="195" height="14" fill="#12213D"/>
+        <g fill="#12213D" opacity=".85"><rect x="26" y="26" width="22" height="18" rx="3"/><rect x="56" y="24" width="22" height="18" rx="3"/><rect x="86" y="22" width="22" height="18" rx="3"/><rect x="116" y="21" width="22" height="18" rx="3"/><rect x="146" y="22" width="22" height="18" rx="3"/></g>
+        <g class="spin-wheel"><circle cx="55" cy="75" r="13" fill="#1A1A1A"/><circle cx="55" cy="75" r="5" fill="#EFEFEF"/><rect x="53" y="63" width="4" height="10" fill="#1A1A1A"/></g>
+        <g class="spin-wheel"><circle cx="165" cy="75" r="13" fill="#1A1A1A"/><circle cx="165" cy="75" r="5" fill="#EFEFEF"/><rect x="163" y="63" width="4" height="10" fill="#1A1A1A"/></g>
+      </svg>
+    </span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tabs-inner" id="tabsInner"></div>
+</nav>
+
+<main>
+
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="hero">
+      <div class="hero-text">
+        <h1 data-i18n="hero_title">Travel Tanzania. One tap booking, zero queues.</h1>
+        <p data-i18n="hero_sub">Search buses between Arusha, Dar es Salaam, Geita, Kahama and Mbeya, pick your seat, pay, and get an instant SMS ticket confirmation — no terminal visit needed.</p>
+        <div class="stat-row">
+          <div class="stat"><b>5</b><span data-i18n="stat1">Bus companies</span></div>
+          <div class="stat"><b>5</b><span data-i18n="stat2">Major towns</span></div>
+          <div class="stat"><b>24/7</b><span data-i18n="stat3">Online booking</span></div>
+          <div class="stat"><b>SMS</b><span data-i18n="stat4">Instant ticket alert</span></div>
+        </div>
+        <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-sun" data-i18n="cta_search" onclick="showScreen('search')">Search a Trip</button>
+          <button class="btn btn-outline" style="color:#fff;border-color:#fff;" data-i18n="cta_ai" onclick="openAI()">Ask Amani AI</button>
+        </div>
+      </div>
+      <div class="hero-visual" id="heroVisual">
+        <div class="hero-road"></div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_fleetstrip">Ready to depart</div>
+      <h2 data-i18n="h_fleetstrip">Our buses, packed and ready</h2>
+    </div>
+    <div class="fleet-strip" id="fleetStrip"></div>
+
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_companies">Our Partners</div>
+      <h2 data-i18n="h_companies">Bus companies on the platform</h2>
+    </div>
+    <div class="grid cols-3" id="companyGrid"></div>
+  </section>
+
+  <!-- REGISTER -->
+  <section class="screen" id="screen-register">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_account">Create account</div>
+      <h2 data-i18n="h_register">Register as a passenger</h2>
+      <p data-i18n="p_register">Create an account to book tickets and receive SMS confirmations directly on your phone.</p>
+    </div>
+    <div class="card" style="max-width:460px;">
+      <form onsubmit="doRegister(event)">
+        <label data-i18n="lbl_fullname">Full name</label>
+        <input required id="regName" placeholder="e.g. Amani Anthony Mayunga">
+        <label data-i18n="lbl_email">Email</label>
+        <input required type="email" id="regEmail" placeholder="you@example.com">
+        <label data-i18n="lbl_phone">Phone number (for SMS)</label>
+        <input required id="regPhone" placeholder="+255 7XX XXX XXX">
+        <label data-i18n="lbl_password">Password</label>
+        <input required type="password" id="regPassword" placeholder="••••••••">
+        <button class="btn btn-sun block" type="submit" data-i18n="btn_register">Create account</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- LOGIN -->
+  <section class="screen" id="screen-login">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_account">Account</div>
+      <h2 data-i18n="h_login">Login</h2>
+      <p data-i18n="p_login">Log in to search trips, book seats, and view your tickets.</p>
+    </div>
+    <div class="card" style="max-width:420px;">
+      <form onsubmit="doLogin(event)">
+        <label data-i18n="lbl_email">Email</label>
+        <input required type="email" id="loginEmail" placeholder="you@example.com">
+        <label data-i18n="lbl_password">Password</label>
+        <input required type="password" id="loginPassword" placeholder="••••••••">
+        <button class="btn btn-ink block" type="submit" data-i18n="btn_login">Login</button>
+      </form>
+      <p class="small-note" data-i18n="note_demo_login">Demo mode: any email/password combination will log you in.</p>
+    </div>
+  </section>
+
+  <!-- SEARCH TRIPS -->
+  <section class="screen" id="screen-search">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_search">Plan your trip</div>
+      <h2 data-i18n="h_search">Search available trips</h2>
+    </div>
+    <div class="card">
+      <div class="grid cols-4">
+        <div><label data-i18n="lbl_from">From</label>
+          <select id="fromSelect"></select></div>
+        <div><label data-i18n="lbl_to">To</label>
+          <select id="toSelect"></select></div>
+        <div><label data-i18n="lbl_date">Travel date</label>
+          <input type="date" id="dateSelect"></div>
+        <div><label data-i18n="lbl_class">Class</label>
+          <select id="classSelect">
+            <option value="">All</option>
+            <option value="VIP">VIP</option>
+            <option value="Ordinary">Ordinary</option>
+          </select></div>
+      </div>
+      <button class="btn btn-sun" onclick="runSearch()" data-i18n="btn_search">Search trips</button>
+    </div>
+    <div id="searchResults" style="margin-top:22px;"></div>
+  </section>
+
+  <!-- BUSES -->
+  <section class="screen" id="screen-buses">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_fleet">Fleet</div>
+      <h2 data-i18n="h_buses">Buses on the platform</h2>
+    </div>
+    <div class="grid cols-3" id="busesGrid"></div>
+  </section>
+
+  <!-- ROUTES -->
+  <section class="screen" id="screen-routes">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_routes">Network</div>
+      <h2 data-i18n="h_routes">Available routes</h2>
+    </div>
+    <div class="table-scroll"><table id="routesTable"></table></div>
+  </section>
+
+  <!-- BUS SEATS -->
+  <section class="screen" id="screen-seats">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_seats">Step 2</div>
+      <h2 data-i18n="h_seats">Choose your seat</h2>
+      <p id="seatTripInfo" class="small-note"></p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="mono" style="color:var(--muted);font-size:12px;margin-bottom:10px;" data-i18n="driver_note">— front of bus / driver —</div>
+      <div class="seat-map" id="seatMap"></div>
+      <div class="seat-legend">
+        <span><i class="legend-dot" style="background:#fff;border:1.5px solid var(--line);"></i><span data-i18n="legend_available">Available</span></span>
+        <span><i class="legend-dot" style="background:var(--safari);"></i><span data-i18n="legend_selected">Selected</span></span>
+        <span><i class="legend-dot" style="background:#EDEBE4;"></i><span data-i18n="legend_booked">Booked</span></span>
+      </div>
+    </div>
+    <button class="btn btn-sun" style="margin-top:16px;" onclick="proceedToBooking()" data-i18n="btn_proceed">Proceed to booking</button>
+  </section>
+
+  <!-- BOOKING -->
+  <section class="screen" id="screen-bookings">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_booking">Step 3</div>
+      <h2 data-i18n="h_booking">Confirm booking & pay</h2>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:18px;">
+      <button class="btn btn-ink" id="bkModePassenger" onclick="setBookingMode('passenger')" data-i18n="mode_passenger">🎫 Passenger Ticket</button>
+      <button class="btn btn-outline" id="bkModeParcel" onclick="setBookingMode('parcel')" data-i18n="mode_parcel">📦 Parcel / Non-seat Item</button>
+    </div>
+
+    <div id="bookingPassengerPane">
+      <div class="grid cols-2">
+        <div class="card" id="bookingSummary"></div>
+        <div class="card">
+          <form onsubmit="submitBooking(event)">
+            <label data-i18n="lbl_fullname">Full name</label>
+            <input required id="bkName" placeholder="Passenger name">
+            <label data-i18n="lbl_gender">Gender</label>
+            <select id="bkGender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+            <label data-i18n="lbl_phone">Phone number (SMS will be sent here)</label>
+            <input required id="bkPhone" placeholder="+255 7XX XXX XXX">
+            <label data-i18n="lbl_payment">Payment method</label>
+            <select id="bkPayment">
+              <option>M-Pesa</option>
+              <option>Tigo Pesa</option>
+              <option>Airtel Money</option>
+              <option>Visa/MasterCard</option>
+            </select>
+            <button class="btn btn-safari block" type="submit" data-i18n="btn_pay">Pay & confirm ticket</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="bookingParcelPane" class="hidden">
+      <div class="card" style="max-width:560px;">
+        <p class="small-note" style="margin-top:0;" data-i18n="parcel_hint">Send a parcel, letter, phone, or other item without booking a passenger seat. You'll get a separate tracking code showing the bus's live position for security.</p>
+        <form onsubmit="submitParcel(event)">
+          <label data-i18n="lbl_from">From</label>
+          <select id="pcFrom"></select>
+          <label data-i18n="lbl_to">To</label>
+          <select id="pcTo"></select>
+          <label data-i18n="lbl_company">Bus company</label>
+          <select id="pcCompany"></select>
+          <label data-i18n="lbl_itemdesc">Item description</label>
+          <input required id="pcItem" placeholder="e.g. Sealed envelope, phone in a box...">
+          <label data-i18n="lbl_sendername">Sender name</label>
+          <input required id="pcSenderName" placeholder="Sender full name">
+          <label data-i18n="lbl_senderphone">Sender phone</label>
+          <input required id="pcSenderPhone" placeholder="+255 7XX XXX XXX">
+          <label data-i18n="lbl_receivername">Receiver name</label>
+          <input required id="pcReceiverName" placeholder="Receiver full name">
+          <label data-i18n="lbl_receiverphone">Receiver phone</label>
+          <input required id="pcReceiverPhone" placeholder="+255 7XX XXX XXX">
+          <label data-i18n="lbl_fee">Fee (TZS)</label>
+          <input required type="number" id="pcFee" placeholder="e.g. 8000" min="500">
+          <button class="btn btn-safari block" type="submit" data-i18n="btn_sendparcel">Confirm parcel booking</button>
+        </form>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- TICKETS BOOKED -->
+  <section class="screen" id="screen-tickets">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_tickets">Your tickets</div>
+      <h2 data-i18n="h_tickets">Tickets booked</h2>
+    </div>
+    <div id="ticketsList"></div>
+    <p id="noTickets" class="small-note" data-i18n="note_no_tickets">No tickets booked yet. Search a trip to get started.</p>
+  </section>
+
+  <!-- STANDS -->
+  <section class="screen" id="screen-stands">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_stands">Terminals</div>
+      <h2 data-i18n="h_stands">Bus stands</h2>
+    </div>
+    <div class="grid cols-2" id="standsGrid"></div>
+  </section>
+
+  <!-- BOOKING OFFICES -->
+  <section class="screen" id="screen-offices">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_offices">Support</div>
+      <h2 data-i18n="h_offices">Booking offices</h2>
+    </div>
+    <div class="grid cols-2" id="officesGrid"></div>
+  </section>
+
+  <!-- TIME/SCHEDULE -->
+  <section class="screen" id="screen-time">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_time">Timetable</div>
+      <h2 data-i18n="h_time">Departure & arrival times</h2>
+    </div>
+    <div id="timeBoard" style="margin-bottom:22px;"></div>
+    <div class="table-scroll"><table id="timeTable"></table></div>
+  </section>
+
+  <!-- REGISTER BUS -->
+  <section class="screen" id="screen-registerbus">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_regbus">Fleet management</div>
+      <h2 data-i18n="h_regbus">Registrations</h2>
+      <p data-i18n="p_regbus">Register buses, routes, trips, terminals, and adjust fares — all changes appear immediately across the system.</p>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 data-i18n="h_regbus_sub">Register a bus</h3>
+        <form onsubmit="doRegisterBus(event)">
+          <label data-i18n="lbl_busname">Bus name</label>
+          <input required id="rbName" placeholder="e.g. Amani Safaris Coach 12">
+          <label data-i18n="lbl_plate">Plate number</label>
+          <input required id="rbPlate" placeholder="e.g. T128ABC">
+          <label data-i18n="lbl_company">Operating company</label>
+          <select id="rbCompany"></select>
+          <label data-i18n="lbl_class">Class</label>
+          <select id="rbType"><option value="Ordinary">Ordinary</option><option value="VIP">VIP</option></select>
+          <label data-i18n="lbl_capacity">Seat capacity</label>
+          <input required type="number" id="rbCapacity" value="40" min="10" max="70">
+          <button class="btn btn-sun block" type="submit" data-i18n="btn_regbus">Register bus</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 data-i18n="h_regroute">Register a route</h3>
+        <form onsubmit="doRegisterRoute(event)">
+          <label data-i18n="lbl_from">From</label>
+          <select id="rrFrom"></select>
+          <label data-i18n="lbl_to">To</label>
+          <select id="rrTo"></select>
+          <label data-i18n="lbl_distance">Distance (km)</label>
+          <input required type="number" id="rrDistance" placeholder="e.g. 450" min="1">
+          <label data-i18n="lbl_duration">Duration (hours)</label>
+          <input required type="number" id="rrDuration" placeholder="e.g. 7" step="0.5" min="0.5">
+          <button class="btn btn-ink block" type="submit" data-i18n="btn_regroute">Register route</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 data-i18n="h_regtrip">Register a trip</h3>
+        <form onsubmit="doRegisterTrip(event)">
+          <label data-i18n="lbl_route">Route</label>
+          <select id="rtRoute" onchange="toggleNewRouteFields()"></select>
+          <div id="rtNewRouteFields" class="hidden" style="border:1px dashed var(--line);border-radius:10px;padding:12px;margin-bottom:14px;">
+            <p class="small-note" style="margin-top:0;" data-i18n="new_route_hint">Type a brand-new route — coordinates are detected automatically from the place name.</p>
+            <label data-i18n="lbl_from">From</label>
+            <input id="rtNewFrom" placeholder="e.g. Singida">
+            <label data-i18n="lbl_to">To</label>
+            <input id="rtNewTo" placeholder="e.g. Tanga">
+            <label data-i18n="lbl_distance">Distance (km)</label>
+            <input type="number" id="rtNewDistance" placeholder="e.g. 300" min="1">
+            <label data-i18n="lbl_duration">Duration (hours)</label>
+            <input type="number" id="rtNewDuration" placeholder="e.g. 5" step="0.5" min="0.5">
+          </div>
+          <label data-i18n="lbl_company">Bus company</label>
+          <select id="rtCompany"></select>
+          <label data-i18n="lbl_departure">Departure time</label>
+          <input required type="time" id="rtDep" value="07:00">
+          <label data-i18n="lbl_class">Class</label>
+          <select id="rtClass"><option value="Ordinary">Ordinary</option><option value="VIP">VIP</option></select>
+          <label data-i18n="lbl_fare">Fare (TZS)</label>
+          <input required type="number" id="rtFare" placeholder="e.g. 35000" min="1000">
+          <button class="btn btn-safari block" type="submit" id="rtSubmitBtn" data-i18n="btn_regtrip">Register trip</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 data-i18n="h_farechange">Change fare <span class="small-note" data-i18n="optional_tag">(optional)</span></h3>
+        <form onsubmit="doFareChange(event)">
+          <label data-i18n="lbl_trip">Existing trip</label>
+          <select id="fcTrip"></select>
+          <label data-i18n="lbl_newfare">New fare (TZS)</label>
+          <input required type="number" id="fcFare" placeholder="e.g. 40000" min="1000">
+          <button class="btn btn-outline block" type="submit" data-i18n="btn_farechange">Update fare</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 data-i18n="h_regterminal">Register a terminal / stand</h3>
+        <form onsubmit="doRegisterTerminal(event)">
+          <label data-i18n="lbl_town">Town</label>
+          <input required id="rtmTown" placeholder="e.g. Arusha, or a new town name">
+          <label data-i18n="lbl_standname">Stand / terminal name</label>
+          <input required id="rtmName" placeholder="e.g. Arusha Central Bus Stand">
+          <label data-i18n="lbl_address">Address</label>
+          <input required id="rtmAddress" placeholder="e.g. Sokoine Road, Arusha">
+          <label data-i18n="lbl_facilities">Facilities</label>
+          <input id="rtmFacilities" placeholder="e.g. Waiting hall, ticket counters">
+          <label data-i18n="lbl_latlng">Map coordinates (lat, lng) — <span data-i18n="latlng_note">leave blank if town already exists</span></label>
+          <input id="rtmLatLng" placeholder="e.g. -3.3869, 36.6830">
+          <button class="btn btn-ink block" type="submit" data-i18n="btn_regterminal">Register terminal</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPANY BUSES -->
+  <section class="screen" id="screen-companybuses">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_holding">Ownership</div>
+      <h2 data-i18n="h_holding">Company &amp; owned buses</h2>
+      <p data-i18n="p_holding">A holding company can register itself, then register the bus brands it owns.</p>
+    </div>
+    <div class="grid cols-2" id="holdingGrid" style="margin-bottom:26px;"></div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 data-i18n="h_newcompany">Register a holding company</h3>
+        <form onsubmit="doRegisterCompany(event)">
+          <label data-i18n="lbl_companyname">Company name</label>
+          <input required id="hcName" placeholder="e.g. Cybershield Safaris">
+          <label data-i18n="lbl_phone">Phone number</label>
+          <input required id="hcPhone" placeholder="+255 7XX XXX XXX">
+          <label data-i18n="lbl_email">Email</label>
+          <input required type="email" id="hcEmail" placeholder="info@company.co.tz">
+          <button class="btn btn-ink block" type="submit" data-i18n="btn_newcompany">Register company</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3 data-i18n="h_newbrand">Register a bus brand under a company</h3>
+        <form onsubmit="doRegisterBrand(event)">
+          <label data-i18n="lbl_parentcompany">Holding company</label>
+          <select id="brandParent"></select>
+          <label data-i18n="lbl_brandname">Bus brand name</label>
+          <input required id="brandName" placeholder="e.g. Blandina Safaris">
+          <button class="btn btn-safari block" type="submit" data-i18n="btn_newbrand">Add bus brand</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- SATELLITE MAP -->
+  <section class="screen" id="screen-satmap">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_satmap">Live view</div>
+      <h2 data-i18n="h_satmap">Satellite map</h2>
+      <p data-i18n="p_satmap">See the real-world location of bus stands, booking offices, and journey start/end points. After paying for a seat you receive a location code — search it under "Location Search" to jump straight to your journey on the map.</p>
+    </div>
+    <div class="card" id="mapInfoCard" style="margin-bottom:16px;"></div>
+    <div id="mapContainer" style="height:480px;border-radius:14px;overflow:hidden;border:1px solid var(--line);"></div>
+  </section>
+
+  <!-- LOCATION SEARCHER -->
+  <section class="screen" id="screen-locsearch">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_locsearch">Find your journey</div>
+      <h2 data-i18n="h_locsearch">Location search</h2>
+      <p data-i18n="p_locsearch">Enter the location code you received after payment to view your journey on the satellite map.</p>
+    </div>
+    <div class="card" style="max-width:480px;">
+      <label data-i18n="lbl_loccode">Location search code</label>
+      <input id="locCodeInput" placeholder="LOC-XXXXXX">
+      <button class="btn btn-sun block" onclick="lookupLocCode()" data-i18n="btn_locsearch">Search</button>
+    </div>
+    <div id="locResult" style="margin-top:18px;max-width:480px;"></div>
+  </section>
+
+  <!-- FEEDBACK -->
+  <section class="screen" id="screen-feedback">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_feedback">We value your voice</div>
+      <h2 data-i18n="h_feedback">Share your feedback</h2>
+      <p data-i18n="p_feedback">Tell us how your journey or booking experience was — it helps every bus company on this platform improve.</p>
+    </div>
+    <div class="card" style="max-width:520px;">
+      <form onsubmit="submitFeedback(event)">
+        <label data-i18n="lbl_fullname">Full name</label>
+        <input required id="fbName" placeholder="Your name">
+        <label data-i18n="lbl_rating">Rating</label>
+        <select id="fbRating">
+          <option value="5">⭐⭐⭐⭐⭐</option>
+          <option value="4">⭐⭐⭐⭐</option>
+          <option value="3">⭐⭐⭐</option>
+          <option value="2">⭐⭐</option>
+          <option value="1">⭐</option>
+        </select>
+        <label data-i18n="lbl_comment">Your comment</label>
+        <textarea required id="fbComment" rows="4" style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;margin-bottom:14px;font-family:'Inter',sans-serif;" placeholder="What went well? What could be better?"></textarea>
+        <button class="btn btn-sun block" type="submit" data-i18n="btn_feedback">Submit feedback</button>
+      </form>
+    </div>
+    <div id="feedbackPublicList" style="margin-top:24px;max-width:520px;"></div>
+  </section>
+
+  <!-- ADMIN -->
+  <section class="screen" id="screen-admin">
+    <div class="section-head">
+      <div class="eyebrow" data-i18n="eyebrow_admin">Management</div>
+      <h2>VAA <span class="live-badge">● <span data-i18n="live_label">LIVE</span></span></h2>
+      <p data-i18n="vaa_sub">Video Assistant Admin — full control of buses, stands, offices, fares, companies, and passengers.</p>
+    </div>
+    <div class="grid cols-4" style="margin-bottom:22px;">
+      <div class="card"><div class="eyebrow" data-i18n="adm_buses">Buses</div><h2 id="admBusCount">5</h2></div>
+      <div class="card"><div class="eyebrow" data-i18n="adm_routes">Routes</div><h2 id="admRouteCount">0</h2></div>
+      <div class="card"><div class="eyebrow" data-i18n="adm_trips">Trips</div><h2 id="admTripCount">0</h2></div>
+      <div class="card"><div class="eyebrow" data-i18n="adm_bookings">Bookings</div><h2 id="admBookingCount">0</h2></div>
+    </div>
+
+    <div class="fleet-strip" style="overflow-x:auto;padding-bottom:10px;margin-bottom:18px;" id="vaaTabRow"></div>
+
+    <div id="vaaPane-buses" class="vaa-pane"></div>
+    <div id="vaaPane-stands" class="vaa-pane hidden"></div>
+    <div id="vaaPane-offices" class="vaa-pane hidden"></div>
+    <div id="vaaPane-fares" class="vaa-pane hidden"></div>
+    <div id="vaaPane-companies" class="vaa-pane hidden"></div>
+    <div id="vaaPane-passengers" class="vaa-pane hidden"></div>
+    <div id="vaaPane-livemap" class="vaa-pane hidden"></div>
+    <div id="vaaPane-feedback" class="vaa-pane hidden"></div>
+  </section>
+
+</main>
+
+<div id="toastBox"></div>
+
+<button id="aiToggle" onclick="openAI()">💬</button>
+<div id="aiPanel">
+  <div class="ai-head">
+    <div class="ai-avatar">A</div>
+    <div>
+      <div style="font-weight:700;font-size:14px;">Amani AI</div>
+      <div style="font-size:11px;color:#B9C2D6;" data-i18n="ai_status">Online · Ready to help</div>
+    </div>
+    <button style="margin-left:auto;background:transparent;border:none;color:#fff;font-size:16px;" onclick="closeAI()">✕</button>
+  </div>
+  <div class="ai-body" id="aiBody"></div>
+  <div class="ai-input">
+    <input id="aiInput" placeholder="Ask Amani AI anything..." onkeydown="if(event.key==='Enter')sendAI()">
+    <button onclick="sendAI()">➤</button>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-inner">
+    <div><b>Online Bus Booking System</b><br><span data-i18n="foot_line">Connecting Tanzania, one seat at a time.</span></div>
+    <div data-i18n="foot_rights">© 2026 Online Bus Booking System. All rights reserved.</div>
+  </div>
+</footer>
+
+<script>
+/* ============ DATA ============ */
+const towns = ["Arusha","Dar es Salaam","Geita","Kahama","Mbeya"];
+const companies = [
+  {id:1,name:"Amani Safaris",color:"#2E6F51"},
+  {id:2,name:"Blandina Safaris",color:"#E2811E"},
+  {id:3,name:"Brian Safaris",color:"#12213D"},
+  {id:4,name:"Happynes Safaris",color:"#C1443C"},
+  {id:5,name:"Machemba Safaris",color:"#6B4FA0"}
+];
+const routesData = [
+  {id:1, from:"Arusha", to:"Dar es Salaam", km:640, hrs:9},
+  {id:2, from:"Dar es Salaam", to:"Arusha", km:640, hrs:9},
+  {id:3, from:"Arusha", to:"Mbeya", km:830, hrs:12},
+  {id:4, from:"Mbeya", to:"Arusha", km:830, hrs:12},
+  {id:5, from:"Geita", to:"Kahama", km:120, hrs:2.5},
+  {id:6, from:"Kahama", to:"Geita", km:120, hrs:2.5},
+  {id:7, from:"Arusha", to:"Geita", km:560, hrs:8},
+  {id:8, from:"Geita", to:"Arusha", km:560, hrs:8},
+  {id:9, from:"Dar es Salaam", to:"Mbeya", km:710, hrs:10},
+  {id:10,from:"Mbeya", to:"Dar es Salaam", km:710, hrs:10},
+  {id:11,from:"Kahama", to:"Mbeya", km:520, hrs:7.5},
+  {id:12,from:"Mbeya", to:"Kahama", km:520, hrs:7.5}
+];
+let trips = [
+  {id:101, routeId:1, companyId:1, dep:"06:00", cls:"VIP", fare:45000},
+  {id:102, routeId:1, companyId:3, dep:"20:00", cls:"Ordinary", fare:32000},
+  {id:103, routeId:2, companyId:2, dep:"07:00", cls:"VIP", fare:45000},
+  {id:104, routeId:3, companyId:4, dep:"05:30", cls:"Ordinary", fare:38000},
+  {id:105, routeId:4, companyId:5, dep:"19:00", cls:"VIP", fare:52000},
+  {id:106, routeId:5, companyId:1, dep:"09:00", cls:"Ordinary", fare:12000},
+  {id:107, routeId:6, companyId:2, dep:"14:00", cls:"Ordinary", fare:12000},
+  {id:108, routeId:7, companyId:3, dep:"06:30", cls:"VIP", fare:41000},
+  {id:109, routeId:8, companyId:4, dep:"21:00", cls:"Ordinary", fare:28000},
+  {id:110, routeId:9, companyId:5, dep:"08:00", cls:"VIP", fare:47000},
+  {id:111, routeId:10,companyId:1, dep:"18:00", cls:"Ordinary", fare:34000},
+  {id:112, routeId:11,companyId:2, dep:"10:00", cls:"VIP", fare:39000}
+];
+let currentUser = null;
+let currentTrip = null;
+let selectedSeats = [];
+let myTickets = [];
+let allBookingsAdmin = [];
+let smsLog = [];
+let registeredBuses = []; // {id, name, plate, companyId, type, capacity}
+let holdingCompanies = [
+  {id:1, name:"Cybershield Safaris", phone:"+255700100000", email:"info@cybershieldsafaris.co.tz", hq:"Cybershield Safaris House, Sokoine Road, Arusha", brandIds:[1,2,3,4,5]}
+];
+const townCoords = {
+  "Arusha":[-3.3869,36.6830],
+  "Dar es Salaam":[-6.7924,39.2083],
+  "Geita":[-2.8719,32.2119],
+  "Kahama":[-3.8333,32.6000],
+  "Mbeya":[-8.9094,33.4608]
+};
+let leafletMap = null, markersLayer = null;
+let terminals = towns.map((t,i)=>({
+  id:i+1, town:t, name:`${t} Bus Stand`,
+  address: `Central bus stand, ${t}`,
+  facilities: "Waiting hall, ticket counters, luggage bay",
+  lat: townCoords[t][0], lng: townCoords[t][1]
+}));
+let bookingOffices = [];
+companies.forEach(c=>{
+  towns.slice(0,3).forEach(t=>{
+    bookingOffices.push({
+      id: bookingOffices.length+1, companyId:c.id, town:t,
+      address: `${t} Bus Stand Rd`,
+      phone: `+255 7${String(c.id)}${String(t.length).padStart(2,'0')} 000 000`
+    });
+  });
+});
+let parcels = [];      // non-seat items: parcels, letters, phones etc.
+let feedbackList = [];
+
+function nextBookingOfficeId(){ return bookingOffices.length ? Math.max(...bookingOffices.map(o=>o.id))+1 : 1; }
+function nextParcelId(){ return parcels.length ? Math.max(...parcels.map(p=>p.id))+1 : 1; }
+
+function co(id){return companies.find(c=>c.id===id);}
+function route(id){return routesData.find(r=>r.id===id);}
+function initials(name){return name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();}
+function arrival(dep,hrs){
+  let [h,m]=dep.split(":").map(Number);
+  let total=h*60+m+Math.round(hrs*60);
+  total%=1440;
+  return String(Math.floor(total/60)).padStart(2,"0")+":"+String(total%60).padStart(2,"0");
+}
+function fmtTZS(n){return "TZS "+n.toLocaleString();}
+
+/* ============ Bus illustration generator ============ */
+function busSVG(main, accent, opts={}){
+  const cls = opts.cls || "";
+  return `<svg viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg" class="${cls}">
+    <ellipse cx="110" cy="93" rx="88" ry="5" fill="rgba(0,0,0,.18)"/>
+    <path d="M10,70 L10,40 Q10,25 28,22 L150,14 Q175,13 185,30 L205,55 Q210,62 205,68 L205,72 L10,72 Z" fill="${main}"/>
+    <rect x="10" y="55" width="195" height="14" fill="${accent}"/>
+    <rect x="10" y="66" width="195" height="4" fill="rgba(255,255,255,.25)"/>
+    <g fill="#CFEFFF" opacity="0.92">
+      <rect x="26" y="26" width="24" height="19" rx="4"/>
+      <rect x="57" y="24" width="24" height="19" rx="4"/>
+      <rect x="88" y="22" width="24" height="19" rx="4"/>
+      <rect x="119" y="21" width="24" height="19" rx="4"/>
+      <rect x="150" y="22" width="24" height="19" rx="4"/>
+    </g>
+    <circle cx="186" cy="38" r="5" fill="#FFE49A"/>
+    <circle cx="55" cy="75" r="13" fill="#1A1A1A"/><circle cx="55" cy="75" r="5" fill="#B9C2D6"/>
+    <circle cx="165" cy="75" r="13" fill="#1A1A1A"/><circle cx="165" cy="75" r="5" fill="#B9C2D6"/>
+  </svg>`;
+}
+function renderFleetVisuals(){
+  document.getElementById("heroVisual").innerHTML =
+    `<div class="hero-road"></div>` + busSVG("#F3D98B", "#12213D", {cls:"hero-bus"});
+  const strip = document.getElementById("fleetStrip");
+  strip.innerHTML = companies.map(c=>`
+    <div class="fleet-card">
+      ${busSVG(c.color, "#F3D98B")}
+      <b>${c.name}</b>
+      <span>${lang==='en'?'Ready to depart':'Tayari kuondoka'}</span>
+    </div>`).join("");
+}
+
+/* ============ i18n ============ */
+const dict = {
+en:{
+  tagline:"Book your journey across Tanzania", nav_login:"Login", nav_register:"Register",
+  hero_title:"Travel Tanzania. One tap booking, zero queues.",
+  hero_sub:"Search buses between Arusha, Dar es Salaam, Geita, Kahama and Mbeya, pick your seat, pay, and get an instant SMS ticket confirmation — no terminal visit needed.",
+  stat1:"Bus companies", stat2:"Major towns", stat3:"Online booking", stat4:"Instant ticket alert",
+  cta_search:"Search a Trip", cta_ai:"Ask Amani AI",
+  eyebrow_companies:"Our Partners", h_companies:"Bus companies on the platform",
+  eyebrow_fleetstrip:"Ready to depart", h_fleetstrip:"Our buses, packed and ready",
+  eyebrow_account:"Account", h_register:"Register as a passenger",
+  p_register:"Create an account to book tickets and receive SMS confirmations directly on your phone.",
+  lbl_fullname:"Full name", lbl_email:"Email", lbl_phone:"Phone number (for SMS)", lbl_password:"Password",
+  btn_register:"Create account", h_login:"Login", p_login:"Log in to search trips, book seats, and view your tickets.",
+  btn_login:"Login", note_demo_login:"Demo mode: any email/password combination will log you in.",
+  eyebrow_search:"Plan your trip", h_search:"Search available trips",
+  lbl_from:"From", lbl_to:"To", lbl_date:"Travel date", lbl_class:"Class", btn_search:"Search trips",
+  eyebrow_fleet:"Fleet", h_buses:"Buses on the platform",
+  eyebrow_routes:"Network", h_routes:"Available routes",
+  eyebrow_seats:"Step 2", h_seats:"Choose your seat", driver_note:"— front of bus / driver —",
+  legend_available:"Available", legend_selected:"Selected", legend_booked:"Booked", btn_proceed:"Proceed to booking",
+  eyebrow_booking:"Step 3", h_booking:"Confirm booking & pay", lbl_payment:"Payment method", btn_pay:"Pay & confirm ticket",
+  eyebrow_tickets:"Your tickets", h_tickets:"Tickets booked", note_no_tickets:"No tickets booked yet. Search a trip to get started.",
+  eyebrow_stands:"Terminals", h_stands:"Bus stands",
+  eyebrow_offices:"Support", h_offices:"Booking offices",
+  eyebrow_time:"Timetable", h_time:"Departure & arrival times",
+  eyebrow_admin:"Management", h_admin:"Admin dashboard", adm_buses:"Buses", adm_routes:"Routes", adm_trips:"Trips",
+  adm_bookings:"Bookings", adm_recent:"Recent bookings",
+  ai_status:"Online · Ready to help",
+  foot_line:"Connecting Tanzania, one seat at a time.",
+  foot_rights:"© 2026 Online Bus Booking System. All rights reserved.",
+  tab_home:"Home",tab_search:"Search Route",tab_buses:"Buses",tab_routes:"Routes",tab_bookings:"Bookings",
+  tab_tickets:"Tickets",tab_stands:"Stands",tab_offices:"Booking Offices",tab_ticketsbooked:"Tickets Booked",
+  tab_seats:"Bus Seats",tab_time:"Time",tab_admin:"Admin",
+  tab_registerbus:"Registrations", tab_companybuses:"Company Buses", tab_satmap:"Satellite Map", tab_locsearch:"Location Search",
+  eyebrow_regbus:"Fleet management", h_regbus:"Register a bus",
+  p_regbus:"Add a new vehicle to a bus company's fleet. It will appear immediately under \"Buses\" and \"Company Buses\".",
+  lbl_busname:"Bus name", lbl_plate:"Plate number", lbl_company:"Operating company", lbl_capacity:"Seat capacity", btn_regbus:"Register bus",
+  eyebrow_holding:"Ownership", h_holding:"Company & owned buses",
+  p_holding:"A holding company can register itself, then register the bus brands it owns.",
+  h_newcompany:"Register a holding company", lbl_companyname:"Company name", btn_newcompany:"Register company",
+  h_newbrand:"Register a bus brand under a company", lbl_parentcompany:"Holding company", lbl_brandname:"Bus brand name", btn_newbrand:"Add bus brand",
+  eyebrow_satmap:"Live view", h_satmap:"Satellite map",
+  p_satmap:"See the real-world location of bus stands, booking offices, and journey start/end points. After paying for a seat you receive a location code — search it under \"Location Search\" to jump straight to your journey on the map.",
+  eyebrow_locsearch:"Find your journey", h_locsearch:"Location search",
+  p_locsearch:"Enter the location code you received after payment to view your journey on the satellite map.",
+  lbl_loccode:"Location search code", btn_locsearch:"Search",
+  h_regbus_sub:"Register a bus",
+  h_regroute:"Register a route", lbl_distance:"Distance (km)", lbl_duration:"Duration (hours)", btn_regroute:"Register route",
+  h_regtrip:"Register a trip", lbl_route:"Route", lbl_departure:"Departure time", lbl_fare:"Fare (TZS)", btn_regtrip:"Register trip",
+  h_farechange:"Change fare", optional_tag:"(optional)", lbl_trip:"Existing trip", lbl_newfare:"New fare (TZS)", btn_farechange:"Update fare",
+  h_regterminal:"Register a terminal / stand", lbl_town:"Town", lbl_standname:"Stand / terminal name", lbl_address:"Address",
+  lbl_facilities:"Facilities", lbl_latlng:"Map coordinates (lat, lng) —", latlng_note:"leave blank if town already exists", btn_regterminal:"Register terminal",
+  new_route_hint:"Type a brand-new route — coordinates are detected automatically from the place name.",
+  lbl_gender:"Gender", mode_passenger:"🎫 Passenger Ticket", mode_parcel:"📦 Parcel / Non-seat Item",
+  parcel_hint:"Send a parcel, letter, phone, or other item without booking a passenger seat. You'll get a separate tracking code showing the bus's live position for security.",
+  lbl_itemdesc:"Item description", lbl_sendername:"Sender name", lbl_senderphone:"Sender phone",
+  lbl_receivername:"Receiver name", lbl_receiverphone:"Receiver phone", lbl_fee:"Fee (TZS)", btn_sendparcel:"Confirm parcel booking",
+  live_label:"LIVE", vaa_sub:"Video Assistant Admin — full control of buses, stands, offices, fares, companies, and passengers.",
+  vaa_allbuses:"All registered buses", vaa_allstands:"All stands / terminals", vaa_alloffices:"All booking offices",
+  vaa_allfares:"All trip fares", vaa_allcompanies:"Holding companies", vaa_allpassengers:"All passengers",
+  vaa_allfeedback:"Passenger feedback",
+  eyebrow_feedback:"We value your voice", h_feedback:"Share your feedback",
+  p_feedback:"Tell us how your journey or booking experience was — it helps every bus company on this platform improve.",
+  lbl_rating:"Rating", lbl_comment:"Your comment", btn_feedback:"Submit feedback", h_recentfeedback:"Recent feedback",
+  tab_feedback:"Feedback"
+},
+sw:{
+  tagline:"Safiri Tanzania kwa urahisi", nav_login:"Ingia", nav_register:"Jisajili",
+  hero_title:"Safiri Tanzania. Bofya mara moja, bila foleni.",
+  hero_sub:"Tafuta mabasi kati ya Arusha, Dar es Salaam, Geita, Kahama na Mbeya, chagua kiti chako, lipa, na upokee ujumbe wa SMS papo hapo — bila kufika stendi.",
+  stat1:"Makampuni ya mabasi", stat2:"Miji mikuu", stat3:"Uwekaji nafasi mtandaoni", stat4:"Ujumbe wa tiketi papo hapo",
+  cta_search:"Tafuta Safari", cta_ai:"Muulize Amani AI",
+  eyebrow_companies:"Wadau Wetu", h_companies:"Makampuni ya mabasi kwenye mfumo",
+  eyebrow_fleetstrip:"Tayari kuondoka", h_fleetstrip:"Mabasi yetu, yamepakiwa na tayari",
+  eyebrow_account:"Akaunti", h_register:"Jisajili kama abiria",
+  p_register:"Fungua akaunti ili kubuki tiketi na kupokea uthibitisho wa SMS moja kwa moja kwenye simu yako.",
+  lbl_fullname:"Jina kamili", lbl_email:"Barua pepe", lbl_phone:"Namba ya simu (kwa SMS)", lbl_password:"Nywila",
+  btn_register:"Fungua akaunti", h_login:"Ingia", p_login:"Ingia ili kutafuta safari, kubuki viti, na kuona tiketi zako.",
+  btn_login:"Ingia", note_demo_login:"Hali ya majaribio: barua pepe/nywila yoyote itakuingiza.",
+  eyebrow_search:"Panga safari yako", h_search:"Tafuta safari zilizopo",
+  lbl_from:"Kutoka", lbl_to:"Kwenda", lbl_date:"Tarehe ya safari", lbl_class:"Aina", btn_search:"Tafuta safari",
+  eyebrow_fleet:"Mabasi", h_buses:"Mabasi kwenye mfumo",
+  eyebrow_routes:"Njia", h_routes:"Njia zilizopo",
+  eyebrow_seats:"Hatua ya 2", h_seats:"Chagua kiti chako", driver_note:"— mbele ya basi / dereva —",
+  legend_available:"Wazi", legend_selected:"Kimechaguliwa", legend_booked:"Kimebukiwa", btn_proceed:"Endelea kubuki",
+  eyebrow_booking:"Hatua ya 3", h_booking:"Thibitisha na Lipa", lbl_payment:"Njia ya malipo", btn_pay:"Lipa na thibitisha tiketi",
+  eyebrow_tickets:"Tiketi zako", h_tickets:"Tiketi zilizobukiwa", note_no_tickets:"Hakuna tiketi bado. Tafuta safari kuanza.",
+  eyebrow_stands:"Vituo", h_stands:"Vituo vya mabasi",
+  eyebrow_offices:"Msaada", h_offices:"Ofisi za kubuki",
+  eyebrow_time:"Ratiba", h_time:"Muda wa kuondoka na kuwasili",
+  eyebrow_admin:"Uongozi", h_admin:"Dashibodi ya msimamizi", adm_buses:"Mabasi", adm_routes:"Njia", adm_trips:"Safari",
+  adm_bookings:"Bukishi", adm_recent:"Bukishi za karibuni",
+  ai_status:"Mtandaoni · Tayari kusaidia",
+  foot_line:"Tunaunganisha Tanzania, kiti kwa kiti.",
+  foot_rights:"© 2026 Online Bus Booking System. Haki zote zimehifadhiwa.",
+  tab_home:"Nyumbani",tab_search:"Tafuta Njia",tab_buses:"Mabasi",tab_routes:"Njia",tab_bookings:"Bukishi",
+  tab_tickets:"Tiketi",tab_stands:"Vituo",tab_offices:"Ofisi za Kubuki",tab_ticketsbooked:"Tiketi Zilizobukiwa",
+  tab_seats:"Viti vya Basi",tab_time:"Muda",tab_admin:"Msimamizi",
+  tab_registerbus:"Usajili", tab_companybuses:"Mabasi ya Kampuni", tab_satmap:"Ramani ya Satelaiti", tab_locsearch:"Tafuta Mahali",
+  eyebrow_regbus:"Uongozi wa mabasi", h_regbus:"Sajili basi",
+  p_regbus:"Ongeza gari jipya kwenye mabasi ya kampuni. Litaonekana papo hapo chini ya \"Mabasi\" na \"Mabasi ya Kampuni\".",
+  lbl_busname:"Jina la basi", lbl_plate:"Namba ya gari", lbl_company:"Kampuni inayomiliki", lbl_capacity:"Idadi ya viti", btn_regbus:"Sajili basi",
+  eyebrow_holding:"Umiliki", h_holding:"Kampuni na mabasi yake",
+  p_holding:"Kampuni kubwa inaweza kujisajili, kisha kusajili mabasi (brands) inayomiliki.",
+  h_newcompany:"Sajili kampuni kubwa", lbl_companyname:"Jina la kampuni", btn_newcompany:"Sajili kampuni",
+  h_newbrand:"Sajili basi chini ya kampuni", lbl_parentcompany:"Kampuni kubwa", lbl_brandname:"Jina la basi (brand)", btn_newbrand:"Ongeza basi",
+  eyebrow_satmap:"Muonekano halisi", h_satmap:"Ramani ya satelaiti",
+  p_satmap:"Ona mahali halisi pa vituo vya mabasi, ofisi za kubuki, na mwanzo/mwisho wa safari. Baada ya kulipia kiti utapokea namba ya mahali — itafute chini ya \"Tafuta Mahali\" kuona safari yako moja kwa moja kwenye ramani.",
+  eyebrow_locsearch:"Tafuta safari yako", h_locsearch:"Tafuta mahali",
+  p_locsearch:"Jaza namba ya mahali uliyopokea baada ya malipo ili kuona safari yako kwenye ramani ya satelaiti.",
+  lbl_loccode:"Namba ya kutafuta mahali", btn_locsearch:"Tafuta",
+  h_regbus_sub:"Sajili basi",
+  h_regroute:"Sajili njia", lbl_distance:"Umbali (km)", lbl_duration:"Muda (masaa)", btn_regroute:"Sajili njia",
+  h_regtrip:"Sajili safari", lbl_route:"Njia", lbl_departure:"Muda wa kuondoka", lbl_fare:"Nauli (TZS)", btn_regtrip:"Sajili safari",
+  h_farechange:"Badilisha nauli", optional_tag:"(hiari)", lbl_trip:"Safari iliyopo", lbl_newfare:"Nauli mpya (TZS)", btn_farechange:"Sasisha nauli",
+  h_regterminal:"Sajili kituo / stendi", lbl_town:"Mji", lbl_standname:"Jina la kituo/stendi", lbl_address:"Anwani",
+  lbl_facilities:"Huduma", lbl_latlng:"Ramani (lat, lng) —", latlng_note:"acha wazi kama mji upo tayari", btn_regterminal:"Sajili kituo",
+  new_route_hint:"Andika njia mpya kabisa — ramani (lat/lng) hutambuliwa kiotomatiki kutoka jina la mahali.",
+  lbl_gender:"Jinsia", mode_passenger:"🎫 Tiketi ya Abiria", mode_parcel:"📦 Mzigo / Kitu Kisicho na Kiti",
+  parcel_hint:"Tuma mzigo, barua, simu, au kitu kingine bila kubuki kiti cha abiria. Utapata namba tofauti ya kufuatilia inayoonyesha eneo halisi la basi kwa usalama.",
+  lbl_itemdesc:"Maelezo ya mzigo", lbl_sendername:"Jina la mtumaji", lbl_senderphone:"Simu ya mtumaji",
+  lbl_receivername:"Jina la mpokeaji", lbl_receiverphone:"Simu ya mpokeaji", lbl_fee:"Ada (TZS)", btn_sendparcel:"Thibitisha usajili wa mzigo",
+  live_label:"MOJA KWA MOJA", vaa_sub:"Video Assistant Admin — udhibiti kamili wa mabasi, vituo, ofisi, nauli, kampuni, na abiria.",
+  vaa_allbuses:"Mabasi yote yaliyosajiliwa", vaa_allstands:"Vituo/stendi zote", vaa_alloffices:"Ofisi zote za kubuki",
+  vaa_allfares:"Nauli zote za safari", vaa_allcompanies:"Kampuni kuu", vaa_allpassengers:"Abiria wote",
+  vaa_allfeedback:"Maoni ya abiria",
+  eyebrow_feedback:"Sauti yako ina maana", h_feedback:"Toa maoni yako",
+  p_feedback:"Tuambie safari au uzoefu wako wa kubuki ulikuwaje — inasaidia kila kampuni ya basi kwenye mfumo huu kuboresha.",
+  lbl_rating:"Kiwango", lbl_comment:"Maoni yako", btn_feedback:"Tuma maoni", h_recentfeedback:"Maoni ya karibuni",
+  tab_feedback:"Maoni"
+}
+};
+let lang = "en";
+function toggleLang(){
+  lang = lang==="en" ? "sw" : "en";
+  document.getElementById("langBtn").textContent = lang==="en" ? "🌐 Swahili" : "🌐 English";
+  applyI18n();
+  renderTabs();
+  renderFleetVisuals();
+}
+function applyI18n(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const key = el.getAttribute("data-i18n");
+    if(dict[lang][key]) el.textContent = dict[lang][key];
+  });
+}
+
+/* ============ Tabs / Screens ============ */
+const tabList = [
+  {id:"home", key:"tab_home"},
+  {id:"search", key:"tab_search"},
+  {id:"buses", key:"tab_buses"},
+  {id:"routes", key:"tab_routes"},
+  {id:"seats", key:"tab_seats"},
+  {id:"bookings", key:"tab_bookings"},
+  {id:"tickets", key:"tab_ticketsbooked"},
+  {id:"stands", key:"tab_stands"},
+  {id:"offices", key:"tab_offices"},
+  {id:"time", key:"tab_time"},
+  {id:"registerbus", key:"tab_registerbus"},
+  {id:"companybuses", key:"tab_companybuses"},
+  {id:"satmap", key:"tab_satmap"},
+  {id:"locsearch", key:"tab_locsearch"},
+  {id:"feedback", key:"tab_feedback"},
+  {id:"admin", key:"tab_admin"}
+];
+function renderTabs(){
+  const box = document.getElementById("tabsInner");
+  box.innerHTML = "";
+  tabList.forEach(t=>{
+    const b = document.createElement("button");
+    b.className = "tab-btn" + (currentScreen===t.id ? " active":"");
+    b.textContent = dict[lang][t.key];
+    b.onclick = ()=>showScreen(t.id);
+    box.appendChild(b);
+  });
+}
+let currentScreen = "home";
+function showScreen(id){
+  currentScreen = id;
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  const el = document.getElementById("screen-"+id);
+  if(el) el.classList.add("active");
+  renderTabs();
+  window.scrollTo({top:0,behavior:"smooth"});
+  if(id==="admin") renderAdmin();
+  if(id==="registerbus") fillCompanySelects();
+  if(id==="companybuses") renderHoldingGrid();
+  if(id==="satmap") ensureMap();
+}
+
+/* ============ Render static data ============ */
+function renderCompanies(){
+  const grid = document.getElementById("companyGrid");
+  const grid2 = document.getElementById("busesGrid");
+  grid.innerHTML = ""; grid2.innerHTML="";
+  companies.forEach(c=>{
+    const card = document.createElement("div");
+    card.className="card company-card";
+    card.innerHTML = `<div class="co-logo" style="background:${c.color}">${initials(c.name)}</div>
+      <div><div class="co-name">${c.name}</div><div class="co-meta">${towns.length} ${lang==='en'?'towns served':'miji yanayohudumiwa'}</div></div>`;
+    grid.appendChild(card);
+
+    const busCard = document.createElement("div");
+    busCard.className="card";
+    const fleetTrips = trips.filter(t=>t.companyId===c.id);
+    const fleetBuses = registeredBuses.filter(b=>b.companyId===c.id);
+    busCard.innerHTML = `<div class="company-card" style="margin-bottom:12px;">
+        <div class="co-logo" style="background:${c.color}">${initials(c.name)}</div>
+        <div><div class="co-name">${c.name}</div><div class="co-meta">${fleetTrips.length} ${lang==='en'?'active trips':'safari zinazofanya kazi'}</div></div>
+      </div>
+      ${fleetTrips.map(t=>{const r=route(t.routeId);return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:13px;">
+        <span>${r.from} → ${r.to}</span><span class="badge ${t.cls.toLowerCase()}">${t.cls}</span></div>`}).join("")}
+      ${fleetBuses.length ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);">
+        <div class="small-note" style="font-weight:700;margin-bottom:4px;">${lang==='en'?'Registered vehicles':'Magari yaliyosajiliwa'}</div>
+        ${fleetBuses.map(b=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;">
+          <span>🚍 ${b.name} · <span class="mono">${b.plate}</span></span><span class="badge ${b.type.toLowerCase()}">${b.type}</span></div>`).join("")}
+      </div>` : ""}
+    `;
+    grid2.appendChild(busCard);
+  });
+}
+function renderRoutesTable(){
+  const t = document.getElementById("routesTable");
+  t.innerHTML = `<tr><th>${lang==='en'?'From':'Kutoka'}</th><th>${lang==='en'?'To':'Kwenda'}</th><th>${lang==='en'?'Distance':'Umbali'}</th><th>${lang==='en'?'Duration':'Muda'}</th></tr>` +
+    routesData.map(r=>`<tr><td>${r.from}</td><td>${r.to}</td><td>${r.km} km</td><td>${r.hrs} hrs</td></tr>`).join("");
+}
+function renderTimeBoard(){
+  const box = document.getElementById("timeBoard");
+  box.innerHTML = trips.map(t=>{
+    const r=route(t.routeId), c=co(t.companyId);
+    const sentence = lang==='en'
+      ? `<b>${c.name}</b> departs <b>${r.from} Stand</b> at <span class="mono">${t.dep}</span> and arrives <b>${r.to}</b> at <span class="mono">${arrival(t.dep,r.hrs)}</span>.`
+      : `<b>${c.name}</b> itaondoka <b>Kituo cha ${r.from}</b> saa <span class="mono">${t.dep}</span> na kufika <b>${r.to}</b> saa <span class="mono">${arrival(t.dep,r.hrs)}</span>.`;
+    return `<div class="trip-row" style="margin-bottom:8px;"><div style="font-size:13.5px;">🕒 ${sentence}</div>
+      <span class="badge ${t.cls.toLowerCase()}">${t.cls}</span></div>`;
+  }).join("");
+}
+function renderTimeTable(){
+  renderTimeBoard();
+  const t = document.getElementById("timeTable");
+  t.innerHTML = `<tr><th>${lang==='en'?'Route':'Njia'}</th><th>Bus</th><th>${lang==='en'?'Departs':'Kuondoka'}</th><th>${lang==='en'?'Arrives':'Kuwasili'}</th><th>${lang==='en'?'Class':'Aina'}</th><th>${lang==='en'?'Fare':'Nauli'}</th></tr>` +
+    trips.map(t2=>{
+      const r=route(t2.routeId), c=co(t2.companyId);
+      return `<tr><td>${r.from} → ${r.to}</td><td>${c.name}</td><td class="mono">${t2.dep}</td><td class="mono">${arrival(t2.dep,r.hrs)}</td><td><span class="badge ${t2.cls.toLowerCase()}">${t2.cls}</span></td><td>${fmtTZS(t2.fare)}</td></tr>`;
+    }).join("");
+}
+function renderStands(){
+  const grid = document.getElementById("standsGrid");
+  grid.innerHTML = terminals.map(t=>`
+    <div class="card list-card" id="stand-${t.id}">
+      <div class="stand-view">
+        <h4>${t.name}</h4>
+        <p>${t.address}</p>
+        <p>${lang==='en'?'Facilities':'Huduma'}: ${t.facilities}</p>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;" onclick="editStand(${t.id})">✏️ ${lang==='en'?'Edit':'Hariri'}</button>
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;color:var(--danger);border-color:var(--danger);" onclick="deleteStand(${t.id})">🗑️ ${lang==='en'?'Delete':'Futa'}</button>
+        </div>
+      </div>
+    </div>`).join("");
+}
+function editStand(id){
+  const t = terminals.find(x=>x.id===id);
+  const card = document.getElementById(`stand-${id}`);
+  card.querySelector(".stand-view").innerHTML = `
+    <label>${lang==='en'?'Name':'Jina'}</label><input id="edStandName-${id}" value="${t.name}">
+    <label>${lang==='en'?'Address':'Anwani'}</label><input id="edStandAddr-${id}" value="${t.address}">
+    <label>${lang==='en'?'Facilities':'Huduma'}</label><input id="edStandFac-${id}" value="${t.facilities}">
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="btn btn-safari" style="padding:6px 12px;font-size:12px;" onclick="saveStand(${id})">💾 ${lang==='en'?'Save':'Hifadhi'}</button>
+      <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;" onclick="renderStands()">✕ ${lang==='en'?'Cancel':'Ghairi'}</button>
+    </div>`;
+}
+function saveStand(id){
+  const t = terminals.find(x=>x.id===id);
+  t.name = document.getElementById(`edStandName-${id}`).value;
+  t.address = document.getElementById(`edStandAddr-${id}`).value;
+  t.facilities = document.getElementById(`edStandFac-${id}`).value;
+  toast(lang==='en'?"Stand updated.":"Kituo kimesasishwa.", "success");
+  renderStands();
+  if(leafletMap) plotAllStandsAndOffices();
+  if(typeof renderVAA==="function") renderVAA();
+}
+function deleteStand(id){
+  if(!confirm(lang==='en'?"Delete this stand?":"Futa kituo hiki?")) return;
+  terminals = terminals.filter(x=>x.id!==id);
+  toast(lang==='en'?"Stand deleted.":"Kituo kimefutwa.", "success");
+  renderStands();
+  if(leafletMap) plotAllStandsAndOffices();
+  if(typeof renderVAA==="function") renderVAA();
+}
+function renderOffices(){
+  const grid = document.getElementById("officesGrid");
+  grid.innerHTML = bookingOffices.map(o=>{
+    const c = co(o.companyId);
+    if(!c) return "";
+    return `<div class="card list-card" style="border-left-color:${c.color}" id="office-${o.id}">
+      <h4>${c.name} — ${o.town}</h4>
+      <div class="office-view">
+        <p>${lang==='en'?'Booking office':'Ofisi ya kubuki'}: ${o.address}</p>
+        <p class="mono">${o.phone}</p>
+        <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;margin-top:6px;" onclick="editOffice(${o.id})">✏️ ${lang==='en'?'Edit':'Hariri'}</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+function editOffice(id){
+  const o = bookingOffices.find(x=>x.id===id);
+  const card = document.getElementById(`office-${id}`);
+  const view = card.querySelector(".office-view");
+  view.innerHTML = `
+    <label style="margin-top:8px;">${lang==='en'?'Address':'Anwani'}</label>
+    <input id="edOfficeAddr-${id}" value="${o.address}">
+    <label>${lang==='en'?'Phone':'Simu'}</label>
+    <input id="edOfficePhone-${id}" value="${o.phone}">
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="btn btn-safari" style="padding:6px 12px;font-size:12px;" onclick="saveOffice(${id})">💾 ${lang==='en'?'Save':'Hifadhi'}</button>
+      <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;" onclick="renderOffices()">✕ ${lang==='en'?'Cancel':'Ghairi'}</button>
+    </div>`;
+}
+function saveOffice(id){
+  const o = bookingOffices.find(x=>x.id===id);
+  o.address = document.getElementById(`edOfficeAddr-${id}`).value;
+  o.phone = document.getElementById(`edOfficePhone-${id}`).value;
+  toast(lang==='en'?"Booking office updated.":"Ofisi ya kubuki imesasishwa.", "success");
+  renderOffices();
+  if(typeof renderVAA==="function") renderVAA();
+}
+
+/* ============ Feedback ============ */
+function submitFeedback(e){
+  e.preventDefault();
+  const name = document.getElementById("fbName").value;
+  const rating = parseInt(document.getElementById("fbRating").value);
+  const comment = document.getElementById("fbComment").value;
+  feedbackList.push({ name, rating, comment, date: new Date().toLocaleDateString() });
+  toast(lang==='en'?"Thank you for your feedback!":"Asante kwa maoni yako!", "success");
+  e.target.reset();
+  renderPublicFeedback();
+  if(typeof renderVAA==="function") renderVAA();
+}
+function renderPublicFeedback(){
+  const box = document.getElementById("feedbackPublicList");
+  if(feedbackList.length===0){ box.innerHTML = ""; return; }
+  box.innerHTML = `<h3 style="margin-bottom:10px;" data-i18n="h_recentfeedback">Recent feedback</h3>` +
+    feedbackList.slice().reverse().slice(0,8).map(f=>`
+    <div class="card" style="margin-bottom:10px;">
+      <div>${'⭐'.repeat(f.rating)}${'☆'.repeat(5-f.rating)} — <b>${f.name}</b> <span class="small-note">${f.date}</span></div>
+      <p class="small-note" style="margin-top:6px;">${f.comment}</p>
+    </div>`).join("");
+}
+
+/* ============ Fleet & Company registration ============ */
+function nextId(arr){ return arr.length ? Math.max(...arr.map(x=>x.id)) + 1 : 1; }
+
+function fillCompanySelects(){
+  const sel = document.getElementById("rbCompany");
+  sel.innerHTML = companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  const parentSel = document.getElementById("brandParent");
+  if(parentSel) parentSel.innerHTML = holdingCompanies.map(h=>`<option value="${h.id}">${h.name}</option>`).join("");
+
+  // Route form: from/to towns
+  const rrFrom = document.getElementById("rrFrom"), rrTo = document.getElementById("rrTo");
+  if(rrFrom){ rrFrom.innerHTML = towns.map(t=>`<option>${t}</option>`).join(""); rrTo.innerHTML = rrFrom.innerHTML; }
+
+  // Trip form: route + company
+  const rtRoute = document.getElementById("rtRoute"), rtCompany = document.getElementById("rtCompany");
+  if(rtRoute){
+    rtRoute.innerHTML = routesData.map(r=>`<option value="${r.id}">${r.from} → ${r.to}</option>`).join("")
+      + `<option value="__new__">✏️ ${lang==='en'?'Type a new route...':'Andika njia mpya...'}</option>`;
+    rtCompany.innerHTML = companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+  }
+
+  // Fare change: existing trips
+  const fcTrip = document.getElementById("fcTrip");
+  if(fcTrip){
+    fcTrip.innerHTML = trips.map(t=>{
+      const r = route(t.routeId), c = co(t.companyId);
+      return `<option value="${t.id}">${c.name} · ${r.from} → ${r.to} · ${t.dep} · ${fmtTZS(t.fare)}</option>`;
+    }).join("");
+  }
+}
+
+function doRegisterRoute(e){
+  e.preventDefault();
+  const from = document.getElementById("rrFrom").value;
+  const to = document.getElementById("rrTo").value;
+  const km = parseInt(document.getElementById("rrDistance").value);
+  const hrs = parseFloat(document.getElementById("rrDuration").value);
+  if(from===to){ toast(lang==='en'?"From and To towns must be different.":"Mji wa kuondoka na kwenda usiwe sawa.", "warn"); return; }
+  routesData.push({ id: nextId(routesData), from, to, km, hrs });
+  toast(lang==='en' ? `Route ${from} → ${to} registered.` : `Njia ${from} → ${to} imesajiliwa.`, "success");
+  renderRoutesTable(); renderTimeTable(); fillCompanySelects();
+  e.target.reset();
+}
+
+function toggleNewRouteFields(){
+  const isNew = document.getElementById("rtRoute").value === "__new__";
+  document.getElementById("rtNewRouteFields").classList.toggle("hidden", !isNew);
+}
+
+/* Auto-detect grid reference (lat/lng) for a place name using free OpenStreetMap geocoding.
+   Biases toward Tanzania since that's this platform's network; falls back to null on failure. */
+async function geocodePlace(placeName){
+  try{
+    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(placeName+", Tanzania")}`);
+    const data = await resp.json();
+    if(data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }catch(e){ /* offline or blocked — caller handles null gracefully */ }
+  return null;
+}
+
+async function doRegisterTrip(e){
+  e.preventDefault();
+  const routeSel = document.getElementById("rtRoute").value;
+  const companyId = parseInt(document.getElementById("rtCompany").value);
+  const dep = document.getElementById("rtDep").value;
+  const cls = document.getElementById("rtClass").value;
+  const fare = parseInt(document.getElementById("rtFare").value);
+  const submitBtn = document.getElementById("rtSubmitBtn");
+  let routeId;
+
+  if(routeSel === "__new__"){
+    const from = document.getElementById("rtNewFrom").value.trim();
+    const to = document.getElementById("rtNewTo").value.trim();
+    const km = parseInt(document.getElementById("rtNewDistance").value) || null;
+    const hrs = parseFloat(document.getElementById("rtNewDuration").value) || null;
+    if(!from || !to || !km || !hrs){
+      toast(lang==='en'?"Please fill in From, To, distance and duration for the new route.":"Tafadhali jaza Kutoka, Kwenda, umbali na muda kwa njia mpya.", "warn");
+      return;
+    }
+    const existing = routesData.find(r=>r.from.toLowerCase()===from.toLowerCase() && r.to.toLowerCase()===to.toLowerCase());
+    if(existing){
+      routeId = existing.id;
+    } else {
+      submitBtn.disabled = true;
+      submitBtn.textContent = lang==='en' ? "Detecting location…" : "Inatafuta mahali…";
+      for(const townName of [from, to]){
+        if(!towns.includes(townName)){
+          towns.push(townName);
+          const geo = await geocodePlace(townName);
+          townCoords[townName] = geo ? [geo.lat, geo.lng] : null;
+          if(!geo) toast(lang==='en' ? `Could not auto-detect coordinates for "${townName}" — you can add them later under Registrations.` : `Haikupata mahali pa "${townName}" kiotomatiki — unaweza kuongeza baadaye chini ya Usajili.`, "warn");
+        }
+      }
+      routeId = nextId(routesData);
+      routesData.push({ id: routeId, from, to, km, hrs });
+      submitBtn.disabled = false;
+      submitBtn.textContent = lang==='en' ? "Register trip" : "Sajili safari";
+    }
+  } else {
+    routeId = parseInt(routeSel);
+  }
+
+  trips.push({ id: nextId(trips), routeId, companyId, dep, cls, fare });
+  const r = route(routeId), c = co(companyId);
+  toast(lang==='en' ? `Trip added: ${c.name}, ${r.from} → ${r.to} at ${dep}.` : `Safari imeongezwa: ${c.name}, ${r.from} → ${r.to} saa ${dep}.`, "success");
+  renderTimeTable(); renderCompanies(); fillCompanySelects(); fillSelects();
+  toggleNewRouteFields();
+  e.target.reset();
+}
+
+function doFareChange(e){
+  e.preventDefault();
+  const tripId = parseInt(document.getElementById("fcTrip").value);
+  const newFare = parseInt(document.getElementById("fcFare").value);
+  const trip = trips.find(t=>t.id===tripId);
+  if(!trip) return;
+  trip.fare = newFare;
+  const r = route(trip.routeId), c = co(trip.companyId);
+  toast(lang==='en' ? `Fare updated: ${c.name} ${r.from} → ${r.to} is now ${fmtTZS(newFare)}.` : `Nauli imebadilishwa: ${c.name} ${r.from} → ${r.to} sasa ni ${fmtTZS(newFare)}.`, "success");
+  renderTimeTable(); fillCompanySelects();
+  e.target.reset();
+}
+
+function doRegisterTerminal(e){
+  e.preventDefault();
+  const town = document.getElementById("rtmTown").value.trim();
+  const name = document.getElementById("rtmName").value;
+  const address = document.getElementById("rtmAddress").value;
+  const facilities = document.getElementById("rtmFacilities").value || (lang==='en'?"Waiting hall, ticket counters":"Ukumbi wa kusubiri, madawati ya tiketi");
+  const latLngRaw = document.getElementById("rtmLatLng").value.trim();
+
+  let lat=null, lng=null;
+  if(latLngRaw){
+    const parts = latLngRaw.split(",").map(s=>parseFloat(s.trim()));
+    if(parts.length===2 && !isNaN(parts[0]) && !isNaN(parts[1])){ lat=parts[0]; lng=parts[1]; }
+  }
+  if(!towns.includes(town)){
+    towns.push(town);
+    if(lat!=null && lng!=null) townCoords[town] = [lat,lng];
+  }
+  if(lat==null && townCoords[town]){ lat = townCoords[town][0]; lng = townCoords[town][1]; }
+
+  terminals.push({ id: nextId(terminals), town, name, address, facilities, lat, lng });
+  toast(lang==='en' ? `Terminal "${name}" registered.` : `Kituo "${name}" kimesajiliwa.`, "success");
+  renderStands(); fillSelects(); fillCompanySelects();
+  if(leafletMap) plotAllStandsAndOffices();
+  e.target.reset();
+}
+
+function doRegisterBus(e){
+  e.preventDefault();
+  const name = document.getElementById("rbName").value;
+  const plate = document.getElementById("rbPlate").value;
+  const companyId = parseInt(document.getElementById("rbCompany").value);
+  const type = document.getElementById("rbType").value;
+  const capacity = parseInt(document.getElementById("rbCapacity").value);
+  registeredBuses.push({ id: nextId(registeredBuses), name, plate, companyId, type, capacity });
+  toast(lang==='en' ? `Bus "${name}" registered successfully.` : `Basi "${name}" limesajiliwa kikamilifu.`, "success");
+  renderCompanies();
+  e.target.reset();
+  document.getElementById("rbCapacity").value = 40;
+  showScreen("buses");
+}
+
+function renderHoldingGrid(){
+  fillCompanySelects();
+  const grid = document.getElementById("holdingGrid");
+  grid.innerHTML = holdingCompanies.map(h=>{
+    const ownedBrands = companies.filter(c=>h.brandIds.includes(c.id));
+    return `<div class="card">
+      <div class="company-card" style="margin-bottom:10px;">
+        <div class="co-logo" style="background:var(--ink)">${initials(h.name)}</div>
+        <div><div class="co-name">${h.name}</div><div class="co-meta mono">${h.phone}</div></div>
+      </div>
+      <div class="small-note" style="font-weight:700;margin-bottom:6px;">${lang==='en'?'Owned bus brands':'Mabasi anayomiliki'}</div>
+      ${ownedBrands.map(b=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;">
+        <span class="co-logo" style="width:26px;height:26px;font-size:10px;background:${b.color}">${initials(b.name)}</span>${b.name}
+      </div>`).join("") || `<span class="small-note">${lang==='en'?'No brands yet.':'Hakuna mabasi bado.'}</span>`}
+    </div>`;
+  }).join("");
+}
+
+function doRegisterCompany(e){
+  e.preventDefault();
+  const name = document.getElementById("hcName").value;
+  const phone = document.getElementById("hcPhone").value;
+  const email = document.getElementById("hcEmail").value;
+  holdingCompanies.push({ id: nextId(holdingCompanies), name, phone, email, brandIds: [] });
+  toast(lang==='en' ? `Company "${name}" registered successfully.` : `Kampuni "${name}" imesajiliwa kikamilifu.`, "success");
+  e.target.reset();
+  renderHoldingGrid();
+}
+
+function doRegisterBrand(e){
+  e.preventDefault();
+  const parentId = parseInt(document.getElementById("brandParent").value);
+  const name = document.getElementById("brandName").value;
+  const palette = ["#2E6F51","#E2811E","#12213D","#C1443C","#6B4FA0","#1D7A8C","#8A4B2B"];
+  const newBrand = { id: nextId(companies), name, color: palette[nextId(companies)%palette.length] };
+  companies.push(newBrand);
+  const parent = holdingCompanies.find(h=>h.id===parentId);
+  if(parent) parent.brandIds.push(newBrand.id);
+  toast(lang==='en' ? `Bus brand "${name}" added successfully.` : `Basi "${name}" limeongezwa kikamilifu.`, "success");
+  e.target.reset();
+  renderHoldingGrid();
+  renderCompanies();
+  renderFleetVisuals();
+  fillCompanySelects();
+}
+
+/* ============ Satellite Map ============ */
+function ensureMap(){
+  if(typeof L === "undefined"){
+    document.getElementById("mapContainer").innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted);">${lang==='en'?'Map library failed to load. Please check your internet connection.':'Ramani haijapakia. Tafadhali angalia mtandao wako.'}</div>`;
+    return;
+  }
+  if(!leafletMap){
+    leafletMap = L.map('mapContainer',{zoomControl:true}).setView([-6.5,35.0],6);
+
+    const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap contributors', maxZoom:18
+    }).addTo(leafletMap); // default: shows roads, city names, terrain
+
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+      attribution:'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics', maxZoom:18
+    });
+
+    L.control.layers({ "Streets": streets, "Satellite": satellite }, {}, { position: "topright" }).addTo(leafletMap);
+
+    markersLayer = L.layerGroup().addTo(leafletMap);
+    plotAllStandsAndOffices();
+    document.getElementById("mapInfoCard").innerHTML = `<b>${lang==='en'?'Showing':'Inaonyesha'}:</b> ${lang==='en'?'all bus stands (📍) and booking offices (●) across the network. Use the layers icon (top-right) to switch between Streets and Satellite view.':'vituo vyote vya mabasi (📍) na ofisi za kubuki (●) kwenye mtandao wetu. Tumia alama ya "layers" (juu-kulia) kubadili kati ya ramani ya barabara na satelaiti.'}`;
+  } else {
+    setTimeout(()=>leafletMap.invalidateSize(), 150);
+  }
+}
+function plotAllStandsAndOffices(){
+  markersLayer.clearLayers();
+  terminals.forEach(t=>{
+    if(t.lat==null || t.lng==null) return;
+    L.marker([t.lat, t.lng]).addTo(markersLayer).bindPopup(`<b>${t.name}</b><br>${t.address}`);
+    const office = [t.lat+0.012, t.lng+0.012];
+    L.circleMarker(office,{radius:8,color:"#D9A93B",fillColor:"#D9A93B",fillOpacity:0.9}).addTo(markersLayer)
+      .bindPopup(`<b>${t.town} ${lang==='en'?'Booking Office':'Ofisi ya Kubuki'}</b>`);
+  });
+}
+function focusMapOn(lat, lng, label, zoom){
+  showScreen("satmap");
+  ensureMap();
+  setTimeout(()=>{
+    if(!leafletMap){ return; } // map library unavailable (e.g. no internet connection)
+    leafletMap.setView([lat,lng], zoom || 13);
+    L.marker([lat,lng]).addTo(markersLayer).bindPopup(label).openPopup();
+    document.getElementById("mapInfoCard").innerHTML = `<b>${lang==='en'?'Focused on':'Inaonyesha'}:</b> ${label}`;
+  }, 200);
+}
+
+/* ============ Location Searcher ============ */
+function prefillLocSearch(code){
+  showScreen("locsearch");
+  setTimeout(()=>{
+    document.getElementById("locCodeInput").value = code;
+    lookupLocCode();
+  }, 100);
+}
+function lookupLocCode(){
+  const code = document.getElementById("locCodeInput").value.trim().toUpperCase();
+  const ticket = myTickets.find(t=>t.locCode===code);
+  const parcel = !ticket ? parcels.find(p=>p.code===code) : null;
+  const box = document.getElementById("locResult");
+  if(!ticket && !parcel){
+    box.innerHTML = `<p class="small-note" style="color:var(--danger);">${lang==='en'?'Code not found. Please check your ticket/parcel receipt and try again.':'Namba haipo. Tafadhali angalia risiti yako na ujaribu tena.'}</p>`;
+    return;
+  }
+  if(parcel){
+    box.innerHTML = `
+      <div class="card">
+        <p><b>📦 ${parcel.company}</b> · ${parcel.from} → ${parcel.to}</p>
+        <p class="small-note">${lang==='en'?'Item':'Mzigo'}: ${parcel.item}</p>
+        <p class="small-note">${lang==='en'?'For security, this shows the live position of the bus carrying your item.':'Kwa usalama wa mzigo, hii inaonyesha eneo halisi la basi linalobeba mzigo wako.'}</p>
+        <button class="btn btn-safari block" onclick="openParcelOnMap('${parcel.code}')">${lang==='en'?'Track on map':'Fuatilia kwenye ramani'}</button>
+      </div>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="card">
+      <p><b>${ticket.company}</b> · ${ticket.from} → ${ticket.to}</p>
+      <label style="margin-top:10px;" data-i18n-skip>${lang==='en'?'Which place would you like to view?':'Ungependa kuona mahali gani?'}</label>
+      <select id="locPlaceChoice">
+        <option value="origin">${lang==='en'?`${ticket.from} Bus Stand (departure)`:`Kituo cha ${ticket.from} (kuondoka)`}</option>
+        <option value="destination">${lang==='en'?`${ticket.to} Bus Stand (arrival)`:`Kituo cha ${ticket.to} (kuwasili)`}</option>
+        <option value="office">${lang==='en'?`${ticket.from} Booking Office`:`Ofisi ya Kubuki ${ticket.from}`}</option>
+        <option value="bus">${lang==='en'?"Bus current position (en route)":"Basi liko wapi sasa (safarini)"}</option>
+      </select>
+      <label>${lang==='en'?'Or type a place name':'Au jaza jina la mahali'}</label>
+      <input id="locPlaceText" placeholder="${lang==='en'?'e.g. Arusha, Stand, Office...':'mfano: Arusha, Stendi, Ofisi...'}">
+      <button class="btn btn-safari block" onclick="openLocationOnMap('${ticket.locCode}')">${lang==='en'?'Open map':'Fungua ramani'}</button>
+    </div>`;
+}
+function openParcelOnMap(code){
+  const parcel = parcels.find(p=>p.code===code);
+  if(!parcel) return;
+  const c1 = townCoords[parcel.from], c2 = townCoords[parcel.to];
+  if(!c1 || !c2) return;
+  const lat = (c1[0]+c2[0])/2, lng = (c1[1]+c2[1])/2;
+  const label = lang==='en'
+    ? `📦 ${parcel.company} — item "${parcel.item}" currently en route (${parcel.from} → ${parcel.to})`
+    : `📦 ${parcel.company} — mzigo "${parcel.item}" uko njiani (${parcel.from} → ${parcel.to})`;
+  focusMapOn(lat, lng, label, 10);
+}
+function openLocationOnMap(code){
+  const ticket = myTickets.find(t=>t.locCode===code);
+  if(!ticket) return;
+  const typed = (document.getElementById("locPlaceText").value || "").toLowerCase();
+  const choice = document.getElementById("locPlaceChoice").value;
+  let lat, lng, label;
+
+  const matchTown = towns.find(t=>typed.includes(t.toLowerCase()));
+  if(matchTown){
+    const c = townCoords[matchTown];
+    if(typed.includes("office") || typed.includes("ofisi")){ lat=c[0]+0.012; lng=c[1]+0.012; label=`${matchTown} Booking Office`; }
+    else { lat=c[0]; lng=c[1]; label=`${matchTown} Bus Stand`; }
+  } else if(choice==="origin"){
+    const c = townCoords[ticket.from]; lat=c[0]; lng=c[1]; label=`${ticket.from} Bus Stand — departure point`;
+  } else if(choice==="destination"){
+    const c = townCoords[ticket.to]; lat=c[0]; lng=c[1]; label=`${ticket.to} Bus Stand — arrival point`;
+  } else if(choice==="office"){
+    const c = townCoords[ticket.from]; lat=c[0]+0.012; lng=c[1]+0.012; label=`${ticket.from} Booking Office`;
+  } else {
+    const c1 = townCoords[ticket.from], c2 = townCoords[ticket.to];
+    lat = (c1[0]+c2[0])/2; lng = (c1[1]+c2[1])/2; label = `${ticket.company} — current position (en route ${ticket.from} → ${ticket.to})`;
+  }
+  focusMapOn(lat, lng, label, 11);
+}
+
+/* ============ Search ============ */
+function fillSelects(){
+  const f = document.getElementById("fromSelect"), tt = document.getElementById("toSelect");
+  f.innerHTML = `<option value="">${lang==='en'?'Any':'Yoyote'}</option>` + towns.map(t=>`<option>${t}</option>`).join("");
+  tt.innerHTML = f.innerHTML;
+}
+function runSearch(){
+  const from = document.getElementById("fromSelect").value;
+  const to = document.getElementById("toSelect").value;
+  const cls = document.getElementById("classSelect").value;
+  const results = trips.filter(t=>{
+    const r = route(t.routeId);
+    return (!from || r.from===from) && (!to || r.to===to) && (!cls || t.cls===cls);
+  });
+  const box = document.getElementById("searchResults");
+  if(results.length===0){
+    box.innerHTML = `<p class="small-note">${lang==='en'?'No trips found for this search. Try different towns.':'Hakuna safari zilizopatikana. Jaribu miji mingine.'}</p>`;
+    return;
+  }
+  box.innerHTML = results.map(t=>{
+    const r = route(t.routeId), c = co(t.companyId);
+    return `<div class="trip-row">
+      <div>
+        <div class="trip-route"><div class="co-logo" style="width:34px;height:34px;font-size:12px;background:${c.color}">${initials(c.name)}</div>${r.from}<span class="arrow">→</span>${r.to}</div>
+        <div class="trip-meta">${c.name} · ${lang==='en'?'Dep':'Kuondoka'} ${t.dep} · ${lang==='en'?'Arr':'Kuwasili'} ${arrival(t.dep,r.hrs)} · <span class="badge ${t.cls.toLowerCase()}">${t.cls}</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="trip-fare">${fmtTZS(t.fare)}<span>${lang==='en'?'per seat':'kwa kiti'}</span></div>
+        <button class="btn btn-safari" style="margin-top:8px;" onclick="selectTrip(${t.id})">${lang==='en'?'Select seats':'Chagua kiti'}</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ============ Seats ============ */
+function selectTrip(tripId){
+  currentTrip = trips.find(t=>t.id===tripId);
+  selectedSeats = [];
+  const r = route(currentTrip.routeId), c = co(currentTrip.companyId);
+  document.getElementById("seatTripInfo").textContent =
+    `${c.name} · ${r.from} → ${r.to} · ${currentTrip.dep} · ${currentTrip.cls} · ${fmtTZS(currentTrip.fare)}`;
+  renderSeatMap();
+  showScreen("seats");
+}
+function renderSeatMap(){
+  const map = document.getElementById("seatMap");
+  map.innerHTML="";
+  if(!currentTrip.bookedSeats){
+    // deterministic pseudo-random booked seats based on trip id
+    const seed = currentTrip.id;
+    currentTrip.bookedSeats = [];
+    for(let i=1;i<=40;i++){ if((i*seed)%7===0) currentTrip.bookedSeats.push(i); }
+  }
+  for(let i=1;i<=40;i++){
+    if(i%4===3){ // gap column marker inserted before seat 3 in each row for aisle
+      const gap = document.createElement("div"); gap.className="seat gap"; map.appendChild(gap);
+    }
+    const seat = document.createElement("div");
+    const booked = currentTrip.bookedSeats.includes(i);
+    seat.className = "seat " + (booked? "booked":"available");
+    seat.textContent = i;
+    seat.onclick = ()=>{
+      if(booked) return;
+      if(selectedSeats.includes(i)){
+        selectedSeats = selectedSeats.filter(s=>s!==i);
+        seat.classList.remove("selected"); seat.classList.add("available");
+      } else {
+        selectedSeats.push(i);
+        seat.classList.add("selected"); seat.classList.remove("available");
+      }
+    };
+    map.appendChild(seat);
+  }
+}
+function proceedToBooking(){
+  if(!currentTrip){ toast(lang==='en'?"Search & select a trip first.":"Tafuta na chagua safari kwanza.", "warn"); showScreen("search"); return; }
+  if(selectedSeats.length===0){ toast(lang==='en'?"Please select at least one seat.":"Tafadhali chagua kiti kimoja angalau.", "warn"); return; }
+  renderBookingSummary();
+  showScreen("bookings");
+}
+function renderBookingSummary(){
+  const r = route(currentTrip.routeId), c = co(currentTrip.companyId);
+  const total = currentTrip.fare * selectedSeats.length;
+  document.getElementById("bookingSummary").innerHTML = `
+    <h3>${lang==='en'?'Trip summary':'Muhtasari wa safari'}</h3>
+    <p><b>${c.name}</b><br>${r.from} → ${r.to}<br>${lang==='en'?'Departs':'Kuondoka'} ${currentTrip.dep} · ${lang==='en'?'Arrives':'Kuwasili'} ${arrival(currentTrip.dep,r.hrs)}</p>
+    <p>${lang==='en'?'Seats':'Viti'}: <b>${selectedSeats.join(", ")}</b></p>
+    <p>${lang==='en'?'Class':'Aina'}: <span class="badge ${currentTrip.cls.toLowerCase()}">${currentTrip.cls}</span></p>
+    <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
+    <p style="font-size:20px;font-family:'Sora';font-weight:800;color:var(--ink);">${fmtTZS(total)}</p>
+  `;
+}
+
+/* ============ Booking submit + SMS simulation ============ */
+function genTicketCode(){ return "ABK-" + Math.random().toString(36).slice(2,8).toUpperCase(); }
+// If deployed on Netlify with the included serverless function (see /backend/netlify/functions),
+// real SMS will be sent via Africa's Talking. Otherwise, SMS is safely simulated (logged + shown as a toast).
+const SMS_BACKEND_URL = "/.netlify/functions/send-sms";
+async function sendRealSMS(phone, text){
+  try{
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 5000);
+    const resp = await fetch(SMS_BACKEND_URL, {
+      method:"POST", headers:{"Content-Type":"application/json"}, signal: controller.signal,
+      body: JSON.stringify({ phone, message:text })
+    });
+    clearTimeout(timeout);
+    if(resp.ok){ const d = await resp.json(); if(d && d.success) return { real:true }; }
+  }catch(e){ /* no backend deployed — fall back to simulation below */ }
+  return { real:false };
+}
+
+async function submitBooking(e){
+  e.preventDefault();
+  const name = document.getElementById("bkName").value;
+  const gender = document.getElementById("bkGender").value;
+  const phone = document.getElementById("bkPhone").value;
+  const payment = document.getElementById("bkPayment").value;
+  const r = route(currentTrip.routeId), c = co(currentTrip.companyId);
+  const total = currentTrip.fare * selectedSeats.length;
+  const code = genTicketCode();
+  currentTrip.bookedSeats.push(...selectedSeats);
+
+  const office = bookingOffices.find(o=>o.companyId===c.id && o.town===r.from) || bookingOffices.find(o=>o.companyId===c.id);
+  const paidAt = new Date();
+  const locCode = "LOC-" + Math.random().toString(36).slice(2,8).toUpperCase();
+
+  const ticket = {
+    code, name, gender, phone, payment, total,
+    company:c.name, from:r.from, to:r.to, dep:currentTrip.dep, arr:arrival(currentTrip.dep,r.hrs),
+    cls:currentTrip.cls, seats:[...selectedSeats], date: paidAt.toLocaleDateString(),
+    paidAt: paidAt.toLocaleString(), officePhone: office ? office.phone : "", locCode
+  };
+  myTickets.push(ticket);
+  allBookingsAdmin.push(ticket);
+
+  const greetLine = (lang==='en')
+    ? `Thank you for travelling with ${c.name}!`
+    : `Asante kwa kusafiri na ${c.name}!`;
+  const smsText = (lang==='en')
+    ? `${greetLine} Ticket ${code} confirmed. ${r.from}->${r.to}, Dep ${currentTrip.dep}, Seat(s) ${selectedSeats.join(",")}. Paid ${fmtTZS(total)} via ${payment}. Map code: ${locCode}. Office: ${ticket.officePhone}. Safe journey!`
+    : `${greetLine} Tiketi ${code} imethibitishwa. ${r.from}->${r.to}, Kuondoka ${currentTrip.dep}, Kiti ${selectedSeats.join(",")}. Umelipa ${fmtTZS(total)} kwa ${payment}. Namba ya ramani: ${locCode}. Ofisi: ${ticket.officePhone}. Safari njema!`;
+
+  const smsResult = await sendRealSMS(phone, smsText);
+  smsLog.push({phone, text:smsText, time:new Date().toLocaleTimeString(), real:smsResult.real});
+  toast((smsResult.real ? (lang==='en'?"SMS sent to ":"SMS imetumwa kwa ") : (lang==='en'?"[Simulated] SMS to ":"[Kwa mfano] SMS kwa "))+phone, "sms", smsText);
+  toast(lang==='en'?"Payment successful. Ticket confirmed!":"Malipo yamefanikiwa. Tiketi imethibitishwa!", "success");
+
+  currentTrip = null; selectedSeats = [];
+  renderTickets();
+  showScreen("tickets");
+}
+
+/* ============ Parcel / non-seat item booking ============ */
+function setBookingMode(mode){
+  document.getElementById("bookingPassengerPane").classList.toggle("hidden", mode!=="passenger");
+  document.getElementById("bookingParcelPane").classList.toggle("hidden", mode!=="parcel");
+  document.getElementById("bkModePassenger").className = "btn " + (mode==="passenger" ? "btn-ink" : "btn-outline");
+  document.getElementById("bkModeParcel").className = "btn " + (mode==="parcel" ? "btn-ink" : "btn-outline");
+  if(mode==="parcel") fillParcelSelects();
+}
+function fillParcelSelects(){
+  document.getElementById("pcFrom").innerHTML = towns.map(t=>`<option>${t}</option>`).join("");
+  document.getElementById("pcTo").innerHTML = towns.map(t=>`<option>${t}</option>`).join("");
+  document.getElementById("pcCompany").innerHTML = companies.map(c=>`<option value="${c.id}">${c.name}</option>`).join("");
+}
+async function submitParcel(e){
+  e.preventDefault();
+  const from = document.getElementById("pcFrom").value;
+  const to = document.getElementById("pcTo").value;
+  const companyId = parseInt(document.getElementById("pcCompany").value);
+  const item = document.getElementById("pcItem").value;
+  const senderName = document.getElementById("pcSenderName").value;
+  const senderPhone = document.getElementById("pcSenderPhone").value;
+  const receiverName = document.getElementById("pcReceiverName").value;
+  const receiverPhone = document.getElementById("pcReceiverPhone").value;
+  const fee = parseInt(document.getElementById("pcFee").value);
+  if(from===to){ toast(lang==='en'?"From and To must differ.":"Kutoka na Kwenda visifanane.", "warn"); return; }
+
+  const c = co(companyId);
+  const code = "PKG-" + Math.random().toString(36).slice(2,8).toUpperCase();
+  // Parcel tracking codes use a distinct prefix from passenger LOC- codes, per security requirement.
+  const parcel = {
+    id: nextParcelId(), code, from, to, companyId, company:c.name, item,
+    senderName, senderPhone, receiverName, receiverPhone, fee,
+    bookedAt: new Date().toLocaleString(), status:"in_transit"
+  };
+  parcels.push(parcel);
+
+  const greetLine = lang==='en' ? `Thank you for shipping with ${c.name}!` : `Asante kwa kutuma mzigo na ${c.name}!`;
+  const senderSMS = lang==='en'
+    ? `${greetLine} Your item "${item}" (${from}->${to}) is booked. Tracking code: ${code}. Receiver: ${receiverName}. Track live location anytime under "Location Search".`
+    : `${greetLine} Mzigo wako "${item}" (${from}->${to}) umesajiliwa. Namba ya ufuatiliaji: ${code}. Mpokeaji: ${receiverName}. Fuatilia mahali popote chini ya "Tafuta Mahali".`;
+  const smsResult = await sendRealSMS(senderPhone, senderSMS);
+  smsLog.push({phone:senderPhone, text:senderSMS, time:new Date().toLocaleTimeString(), real:smsResult.real});
+  toast((smsResult.real?(lang==='en'?"SMS sent to ":"SMS imetumwa kwa "):(lang==='en'?"[Simulated] SMS to ":"[Kwa mfano] SMS kwa "))+senderPhone, "sms", senderSMS);
+  toast(lang==='en'?`Parcel booked! Tracking code: ${code}`:`Mzigo umesajiliwa! Namba: ${code}`, "success");
+
+  e.target.reset();
+  showScreen("tickets");
+  renderTickets();
+}
+
+/* ============ Tickets rendering ============ */
+function renderTickets(){
+  const list = document.getElementById("ticketsList");
+  const empty = document.getElementById("noTickets");
+  if(myTickets.length===0 && parcels.length===0){ list.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  const ticketCards = myTickets.slice().reverse().map(t=>`
+    <div class="ticket">
+      <div class="ticket-main">
+        <div class="ticket-route">${t.from} <span style="color:var(--sun)">→</span> ${t.to}</div>
+        <div class="small-note">${lang==='en'?'Thank you for travelling with':'Asante kwa kusafiri na'} <b>${t.company}</b> · ${t.cls} · ${t.date}</div>
+        <div class="ticket-grid">
+          <div><span>${lang==='en'?'Passenger':'Abiria'}</span><b>${t.name}</b></div>
+          <div><span>${lang==='en'?'Seat(s)':'Kiti'}</span><b>${t.seats.join(", ")}</b></div>
+          <div><span>${lang==='en'?'Departs':'Kuondoka'}</span><b>${t.dep}</b></div>
+          <div><span>${lang==='en'?'Arrives':'Kuwasili'}</span><b>${t.arr}</b></div>
+          <div><span>${lang==='en'?'Paid at':'Muda wa malipo'}</span><b>${t.paidAt||''}</b></div>
+          <div><span>${lang==='en'?'Office phone':'Simu ya ofisi'}</span><b class="mono">${t.officePhone||'—'}</b></div>
+        </div>
+      </div>
+      <div class="ticket-divider"></div>
+      <div class="ticket-stub">
+        <div>
+          <div class="small-note" style="color:#B9C2D6;">${lang==='en'?'TICKET CODE':'NAMBA YA TIKETI'}</div>
+          <div class="ticket-code">${t.code}</div>
+        </div>
+        <div>
+          <div class="small-note" style="color:#B9C2D6;">${lang==='en'?'PAID':'ILIYOLIPWA'}</div>
+          <div style="font-weight:800;">${fmtTZS(t.total)}</div>
+        </div>
+        <div>
+          <div class="small-note" style="color:#B9C2D6;">${lang==='en'?'MAP CODE':'NAMBA YA RAMANI'}</div>
+          <div class="mono" style="font-weight:700;font-size:12px;cursor:pointer;text-decoration:underline;" onclick="prefillLocSearch('${t.locCode}')">${t.locCode}</div>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  const parcelCards = parcels.slice().reverse().map(p=>`
+    <div class="ticket">
+      <div class="ticket-main">
+        <div class="ticket-route">📦 ${p.from} <span style="color:var(--sun)">→</span> ${p.to}</div>
+        <div class="small-note">${lang==='en'?'Thank you for shipping with':'Asante kwa kutuma mzigo na'} <b>${p.company}</b> · ${p.bookedAt}</div>
+        <div class="ticket-grid">
+          <div><span>${lang==='en'?'Item':'Mzigo'}</span><b>${p.item}</b></div>
+          <div><span>${lang==='en'?'Sender':'Mtumaji'}</span><b>${p.senderName}</b></div>
+          <div><span>${lang==='en'?'Receiver':'Mpokeaji'}</span><b>${p.receiverName}</b></div>
+          <div><span>${lang==='en'?'Fee':'Ada'}</span><b>${fmtTZS(p.fee)}</b></div>
+        </div>
+      </div>
+      <div class="ticket-divider"></div>
+      <div class="ticket-stub">
+        <div>
+          <div class="small-note" style="color:#B9C2D6;">${lang==='en'?'TRACKING CODE':'NAMBA YA KUFUATILIA'}</div>
+          <div class="ticket-code">${p.code}</div>
+        </div>
+        <div>
+          <div class="small-note" style="color:#B9C2D6;">${lang==='en'?'STATUS':'HALI'}</div>
+          <div style="font-weight:800;">${lang==='en'?'In transit':'Njiani'}</div>
+        </div>
+        <div>
+          <div class="small-note" style="color:#B9C2D6;">${lang==='en'?'TRACK':'FUATILIA'}</div>
+          <div class="mono" style="font-weight:700;font-size:12px;cursor:pointer;text-decoration:underline;" onclick="prefillLocSearch('${p.code}')">${lang==='en'?'View on map':'Ona ramani'}</div>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  list.innerHTML = ticketCards + parcelCards;
+}
+
+/* ============ VAA — Video Assistant Admin (full control center) ============ */
+const VAA_TABS = [
+  {id:"buses", label_en:"🚌 Buses", label_sw:"🚌 Mabasi"},
+  {id:"stands", label_en:"📍 Stands", label_sw:"📍 Vituo"},
+  {id:"offices", label_en:"🏢 Booking Offices", label_sw:"🏢 Ofisi za Kubuki"},
+  {id:"fares", label_en:"💰 Fare Changes", label_sw:"💰 Nauli"},
+  {id:"companies", label_en:"🏛️ Companies", label_sw:"🏛️ Kampuni"},
+  {id:"passengers", label_en:"🧑‍🤝‍🧑 Passengers", label_sw:"🧑‍🤝‍🧑 Abiria"},
+  {id:"livemap", label_en:"🛰️ Live Buses", label_sw:"🛰️ Mabasi Sasa"},
+  {id:"feedback", label_en:"💬 Feedback", label_sw:"💬 Maoni"}
+];
+let vaaActiveTab = "buses";
+function setVaaTab(id){
+  vaaActiveTab = id;
+  renderVAA();
+}
+function renderVAA(){
+  document.getElementById("admRouteCount").textContent = routesData.length;
+  document.getElementById("admTripCount").textContent = trips.length;
+  document.getElementById("admBusCount").textContent = registeredBuses.length || companies.length;
+  document.getElementById("admBookingCount").textContent = allBookingsAdmin.length;
+
+  document.getElementById("vaaTabRow").innerHTML = VAA_TABS.map(t=>
+    `<button class="vaa-tab ${t.id===vaaActiveTab?'active':''}" onclick="setVaaTab('${t.id}')">${lang==='en'?t.label_en:t.label_sw}</button>`
+  ).join("");
+  VAA_TABS.forEach(t=> document.getElementById(`vaaPane-${t.id}`).classList.toggle("hidden", t.id!==vaaActiveTab));
+
+  renderVaaBuses(); renderVaaStands(); renderVaaOffices(); renderVaaFares();
+  renderVaaCompanies(); renderVaaPassengers(); renderVaaLiveMap(); renderVaaFeedback();
+}
+
+/* --- Buses --- */
+function renderVaaBuses(){
+  const pane = document.getElementById("vaaPane-buses");
+  pane.innerHTML = `<div class="card">
+    <h3 data-i18n="vaa_allbuses">All registered buses</h3>
+    <div id="vaaBusList">${registeredBuses.length===0 ? `<p class="small-note">${lang==='en'?'No buses registered yet — use Registrations to add one.':'Hakuna basi lililosajiliwa — tumia Usajili kuongeza.'}</p>` :
+      registeredBuses.map(b=>{
+        const c = co(b.companyId);
+        return `<div class="vaa-row" id="vaaBus-${b.id}">
+          <div class="vaa-view" style="flex:1;">
+            <b>${b.name}</b> · <span class="mono">${b.plate}</span> · ${c?c.name:'—'} · <span class="badge ${b.type.toLowerCase()}">${b.type}</span> · ${b.capacity} ${lang==='en'?'seats':'viti'}
+          </div>
+          <div class="vaa-actions">
+            <button class="btn btn-outline" onclick="editVaaBus(${b.id})">✏️</button>
+            <button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="deleteVaaBus(${b.id})">🗑️</button>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
+}
+function editVaaBus(id){
+  const b = registeredBuses.find(x=>x.id===id);
+  const row = document.getElementById(`vaaBus-${id}`);
+  row.querySelector(".vaa-view").innerHTML = `
+    <input id="edBusName-${id}" value="${b.name}" style="margin-bottom:6px;">
+    <input id="edBusPlate-${id}" value="${b.plate}" style="margin-bottom:6px;">
+    <select id="edBusType-${id}" style="margin-bottom:6px;"><option ${b.type==='Ordinary'?'selected':''}>Ordinary</option><option ${b.type==='VIP'?'selected':''}>VIP</option></select>
+    <input type="number" id="edBusCap-${id}" value="${b.capacity}">`;
+  row.querySelector(".vaa-actions").innerHTML = `<button class="btn btn-safari" onclick="saveVaaBus(${id})">💾</button>`;
+}
+function saveVaaBus(id){
+  const b = registeredBuses.find(x=>x.id===id);
+  b.name = document.getElementById(`edBusName-${id}`).value;
+  b.plate = document.getElementById(`edBusPlate-${id}`).value;
+  b.type = document.getElementById(`edBusType-${id}`).value;
+  b.capacity = parseInt(document.getElementById(`edBusCap-${id}`).value);
+  toast(lang==='en'?"Bus updated.":"Basi limesasishwa.", "success");
+  renderVAA(); renderCompanies();
+}
+function deleteVaaBus(id){
+  if(!confirm(lang==='en'?"Delete this bus?":"Futa basi hili?")) return;
+  registeredBuses = registeredBuses.filter(x=>x.id!==id);
+  toast(lang==='en'?"Bus deleted.":"Basi limefutwa.", "success");
+  renderVAA(); renderCompanies();
+}
+
+/* --- Stands --- */
+function renderVaaStands(){
+  const pane = document.getElementById("vaaPane-stands");
+  pane.innerHTML = `<div class="card"><h3 data-i18n="vaa_allstands">All stands / terminals</h3>
+    ${terminals.map(t=>`<div class="vaa-row" id="vaaStand-${t.id}">
+      <div class="vaa-view" style="flex:1;"><b>${t.name}</b> — ${t.town}<br><span class="small-note">${t.address}</span></div>
+      <div class="vaa-actions">
+        <button class="btn btn-outline" onclick="editStand(${t.id})">✏️</button>
+        <button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="deleteStand(${t.id})">🗑️</button>
+      </div>
+    </div>`).join("")}
+  </div>`;
+}
+
+/* --- Booking Offices --- */
+function renderVaaOffices(){
+  const pane = document.getElementById("vaaPane-offices");
+  pane.innerHTML = `<div class="card"><h3 data-i18n="vaa_alloffices">All booking offices</h3>
+    ${bookingOffices.map(o=>{
+      const c = co(o.companyId);
+      return `<div class="vaa-row" id="vaaOffice-${o.id}">
+        <div class="vaa-view" style="flex:1;"><b>${c?c.name:'—'}</b> — ${o.town}<br><span class="small-note">${o.address} · <span class="mono">${o.phone}</span></span></div>
+        <div class="vaa-actions"><button class="btn btn-outline" onclick="editOffice(${o.id});setTimeout(renderVAA,50);">✏️</button></div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+/* --- Fares --- */
+function renderVaaFares(){
+  const pane = document.getElementById("vaaPane-fares");
+  pane.innerHTML = `<div class="card"><h3 data-i18n="vaa_allfares">All trip fares</h3>
+    ${trips.map(t=>{
+      const r = route(t.routeId), c = co(t.companyId);
+      return `<div class="vaa-row" id="vaaFare-${t.id}">
+        <div class="vaa-view" style="flex:1;"><b>${c.name}</b> · ${r.from} → ${r.to} · ${t.dep} · <span class="badge ${t.cls.toLowerCase()}">${t.cls}</span> · ${fmtTZS(t.fare)}</div>
+        <div class="vaa-actions"><button class="btn btn-outline" onclick="editVaaFare(${t.id})">✏️</button></div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+function editVaaFare(id){
+  const row = document.getElementById(`vaaFare-${id}`);
+  row.querySelector(".vaa-view").innerHTML = `<input type="number" id="edFare-${id}" value="${trips.find(t=>t.id===id).fare}">`;
+  row.querySelector(".vaa-actions").innerHTML = `<button class="btn btn-safari" onclick="saveVaaFare(${id})">💾</button>`;
+}
+function saveVaaFare(id){
+  const trip = trips.find(t=>t.id===id);
+  trip.fare = parseInt(document.getElementById(`edFare-${id}`).value);
+  toast(lang==='en'?"Fare updated.":"Nauli imesasishwa.", "success");
+  renderVAA(); renderTimeTable();
+}
+
+/* --- Companies (holding companies: phone, email, HQ, brands) --- */
+function renderVaaCompanies(){
+  const pane = document.getElementById("vaaPane-companies");
+  pane.innerHTML = `<div class="card"><h3 data-i18n="vaa_allcompanies">Holding companies</h3>
+    ${holdingCompanies.map(h=>{
+      const brands = companies.filter(c=>h.brandIds.includes(c.id));
+      return `<div class="vaa-row" style="align-items:flex-start;" id="vaaCompany-${h.id}">
+        <div class="vaa-view" style="flex:1;">
+          <b>${h.name}</b><br>
+          <span class="small-note mono">${h.phone} · ${h.email}</span><br>
+          <span class="small-note">${h.hq||''}</span><br>
+          <span class="small-note">${lang==='en'?'Brands':'Mabasi'}: ${brands.map(b=>b.name).join(", ")||'—'}</span>
+        </div>
+        <div class="vaa-actions"><button class="btn btn-outline" onclick="editVaaCompany(${h.id})">✏️</button></div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+function editVaaCompany(id){
+  const h = holdingCompanies.find(x=>x.id===id);
+  const row = document.getElementById(`vaaCompany-${id}`);
+  row.querySelector(".vaa-view").innerHTML = `
+    <label style="margin-top:0;">${lang==='en'?'Phone':'Simu'}</label><input id="edCoPhone-${id}" value="${h.phone}">
+    <label>${lang==='en'?'Email':'Barua pepe'}</label><input id="edCoEmail-${id}" value="${h.email}">
+    <label>${lang==='en'?'Headquarters address':'Anwani ya makao makuu'}</label><input id="edCoHQ-${id}" value="${h.hq||''}">`;
+  row.querySelector(".vaa-actions").innerHTML = `<button class="btn btn-safari" onclick="saveVaaCompany(${id})">💾</button>`;
+}
+function saveVaaCompany(id){
+  const h = holdingCompanies.find(x=>x.id===id);
+  h.phone = document.getElementById(`edCoPhone-${id}`).value;
+  h.email = document.getElementById(`edCoEmail-${id}`).value;
+  h.hq = document.getElementById(`edCoHQ-${id}`).value;
+  toast(lang==='en'?"Company details updated.":"Taarifa za kampuni zimesasishwa.", "success");
+  renderVAA(); renderHoldingGrid();
+}
+
+/* --- Passengers list --- */
+function renderVaaPassengers(){
+  const pane = document.getElementById("vaaPane-passengers");
+  const rows = allBookingsAdmin.slice().reverse();
+  pane.innerHTML = `<div class="card">
+    <h3 data-i18n="vaa_allpassengers">All passengers</h3>
+    <div class="table-scroll"><table>
+      <tr><th>${lang==='en'?'Time':'Muda'}</th><th>${lang==='en'?'Name':'Jina'}</th><th>${lang==='en'?'Gender':'Jinsia'}</th><th>${lang==='en'?'Phone':'Simu'}</th><th>${lang==='en'?'Seat(s)':'Kiti'}</th><th>${lang==='en'?'From':'Kutoka'}</th><th>${lang==='en'?'To':'Kwenda'}</th></tr>
+      ${rows.length===0 ? `<tr><td colspan="7" class="small-note">${lang==='en'?'No passengers yet.':'Hakuna abiria bado.'}</td></tr>` :
+      rows.map(t=>`<tr><td>${t.paidAt||t.date||''}</td><td>${t.name}</td><td>${t.gender||'—'}</td><td class="mono">${t.phone}</td><td>${t.seats.join(", ")}</td><td>${t.from}</td><td>${t.to}</td></tr>`).join("")}
+    </table></div>
+  </div>`;
+}
+
+/* --- Live bus tracker --- */
+function renderVaaLiveMap(){
+  const pane = document.getElementById("vaaPane-livemap");
+  const now = new Date();
+  const rows = trips.map(t=>{
+    const r = route(t.routeId), c = co(t.companyId);
+    const [dh,dm] = t.dep.split(":").map(Number);
+    const dep = new Date(); dep.setHours(dh,dm,0,0);
+    const arr = new Date(dep.getTime() + r.hrs*3600000);
+    let status, pct;
+    if(now < dep){ status = lang==='en'?'At stand (not yet departed)':'Stendi (bado kuondoka)'; pct = 0; }
+    else if(now > arr){ status = lang==='en'?'Arrived':'Imewasili'; pct = 100; }
+    else { pct = Math.round(((now-dep)/(arr-dep))*100); status = lang==='en'?`En route (${pct}%)`:`Njiani (${pct}%)`; }
+    return `<div class="vaa-row">
+      <div style="flex:1;">
+        <b>${c.name}</b> · ${r.from} → ${r.to} · ${t.dep}
+        <div style="background:var(--line);height:6px;border-radius:4px;margin-top:6px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--safari),var(--gold));"></div>
+        </div>
+      </div>
+      <div class="small-note" style="white-space:nowrap;">${status}</div>
+    </div>`;
+  }).join("");
+  pane.innerHTML = `<div class="card">
+    <h3>${lang==='en'?'Live bus tracker':'Ufuatiliaji wa mabasi sasa'} <span class="live-badge">●</span></h3>
+    ${rows}
+    <button class="btn btn-outline" style="margin-top:14px;" onclick="showScreen('satmap')">${lang==='en'?'Open full satellite map':'Fungua ramani kamili'}</button>
+  </div>`;
+}
+
+/* --- Feedback --- */
+function renderVaaFeedback(){
+  const pane = document.getElementById("vaaPane-feedback");
+  pane.innerHTML = `<div class="card"><h3 data-i18n="vaa_allfeedback">Passenger feedback</h3>
+    ${feedbackList.length===0 ? `<p class="small-note">${lang==='en'?'No feedback submitted yet.':'Hakuna maoni bado.'}</p>` :
+    feedbackList.slice().reverse().map(f=>`<div class="vaa-row" style="display:block;">
+      <div>${'⭐'.repeat(f.rating)}${'☆'.repeat(5-f.rating)} — <b>${f.name}</b> <span class="small-note">${f.date}</span></div>
+      <div class="small-note" style="margin-top:4px;">${f.comment}</div>
+    </div>`).join("")}
+  </div>`;
+}
+
+function renderAdmin(){ renderVAA(); }
+
+/* ============ Auth ============ */
+function doRegister(e){
+  e.preventDefault();
+  const name = document.getElementById("regName").value;
+  currentUser = {name};
+  showUserChip(name);
+  toast((lang==='en'?"Welcome, ":"Karibu, ")+name+"!", "success");
+  showScreen("home");
+}
+function doLogin(e){
+  e.preventDefault();
+  const email = document.getElementById("loginEmail").value;
+  const name = email.split("@")[0];
+  currentUser = {name};
+  showUserChip(name);
+  toast(lang==='en'?"Logged in successfully.":"Umeingia kikamilifu.", "success");
+  showScreen("home");
+}
+function showUserChip(name){
+  const chip = document.getElementById("userChip");
+  chip.textContent = "👤 "+name;
+  chip.classList.remove("hidden");
+}
+
+/* ============ Toast ============ */
+function toast(msg, type="info", detail=""){
+  const box = document.getElementById("toastBox");
+  const t = document.createElement("div");
+  t.className = "toast";
+  const label = type==="sms" ? "SMS" : type==="success" ? (lang==='en'?"SUCCESS":"IMEFANIKIWA") : (lang==='en'?"NOTE":"TAARIFA");
+  t.innerHTML = `<b>${label}</b>${msg}${detail?`<div style="margin-top:6px;font-size:11.5px;color:#C6CEE0;">${detail}</div>`:""}`;
+  box.appendChild(t);
+  setTimeout(()=>t.remove(), 7000);
+}
+
+/* ============ Amani AI — hybrid: real Claude API + rich local knowledge engine ============ */
+// If deployed standalone (e.g. Netlify) outside Claude.ai, the direct browser->Anthropic
+// call below usually won't be authorized. Amani AI automatically falls back to a large
+// built-in multilingual knowledge engine below, so he ALWAYS has something good to say —
+// deploy the backend (see /backend, README.md) and set AI_BACKEND_URL to restore full
+// unrestricted Claude answers on a standalone deployment.
+const AI_BACKEND_URL = "";
+let aiHistory = [];
+let aiBusy = false;
+let aiSession = { lastTime: null, lastTopic: null, greeted: false };
+const AI_SESSION_GAP_MS = 20 * 60 * 1000; // 20 minutes
+
+function classifyTopic(t){
+  const s = t.toLowerCase();
+  if(/book|ticket|buki|kiti|seat/.test(s)) return "booking";
+  if(/pay|lipa|mpesa|tigo|airtel|fare|nauli|price|bei/.test(s)) return "payment";
+  if(/route|njia|arusha|dar |geita|kahama|mbeya|schedule|ratiba|time|muda/.test(s)) return "travel";
+  if(/joke|utani|riddle|kitendawili|methali|proverb|story|hadithi/.test(s)) return "fun";
+  if(/football|mpira|soka|sport/.test(s)) return "sports";
+  if(/cod(e|ing)|python|javascript|tech|programu/.test(s)) return "tech";
+  if(/music|muziki|wimbo|song/.test(s)) return "music";
+  return "general";
+}
+
+function openAI(){
+  document.getElementById("aiPanel").classList.add("open");
+  if(document.getElementById("aiBody").children.length===0){
+    const userName = currentUser && currentUser.name ? currentUser.name.split(" ")[0] : null;
+    const hello = userName
+      ? (lang==='en' ? `Hi ${userName}! ` : `Habari ${userName}! `)
+      : (lang==='en' ? "Hi, " : "Habari, ");
+    addAIMsg(lang==='en'
+      ? `${hello}I'm Amani AI 👋 Ask me anything — booking a ticket, fares and routes, or really anything else: sports, tech, coding, music, a joke, a riddle, a proverb, a short story, or just chat in Swahili, English, or another language.`
+      : `${hello}mimi ni Amani AI 👋 Niulize chochote — kubuki tiketi, nauli na njia, au kitu kingine: mpira, teknolojia, coding, muziki, utani, kitendawili, methali, hadithi, au tu kuongea kwa Kiswahili, Kiingereza, au lugha nyingine.`, "bot");
+    aiSession.greeted = true;
+    aiSession.lastTime = Date.now();
+  }
+}
+function closeAI(){ document.getElementById("aiPanel").classList.remove("open"); }
+function addAIMsg(text, who){
+  const body = document.getElementById("aiBody");
+  const m = document.createElement("div");
+  m.className = "msg "+who;
+  m.textContent = text;
+  body.appendChild(m);
+  body.scrollTop = body.scrollHeight;
+  return m;
+}
+function showTyping(){
+  const body = document.getElementById("aiBody");
+  const m = document.createElement("div");
+  m.className = "msg bot"; m.id = "aiTyping";
+  m.innerHTML = `<span class="typing-dot">●</span><span class="typing-dot">●</span><span class="typing-dot">●</span>`;
+  body.appendChild(m);
+  body.scrollTop = body.scrollHeight;
+}
+function hideTyping(){ const t=document.getElementById("aiTyping"); if(t) t.remove(); }
+
+async function sendAI(){
+  if(aiBusy) return;
+  const input = document.getElementById("aiInput");
+  const q = input.value.trim();
+  if(!q) return;
+  addAIMsg(q, "user");
+  input.value = "";
+  aiHistory.push({ role:"user", content:q });
+  aiBusy = true;
+  showTyping();
+
+  const now = Date.now();
+  const topic = classifyTopic(q);
+  const gap = aiSession.lastTime ? (now - aiSession.lastTime) : Infinity;
+  const isFirstMessage = !aiSession.greeted;
+  const isStaleTopicChange = gap >= AI_SESSION_GAP_MS && topic !== aiSession.lastTopic;
+  const needsGreeting = isFirstMessage || isStaleTopicChange;
+
+  let reply = await getAmaniReply(q);
+  hideTyping();
+
+  if(needsGreeting){
+    const userName = currentUser && currentUser.name ? currentUser.name.split(" ")[0] : null;
+    const greetingText = userName
+      ? (lang==='en' ? `Hi ${userName}! Welcome back to Amani AI. ` : `Habari ${userName}! Karibu tena kwa Amani AI. `)
+      : (lang==='en' ? "Hi there! " : "Habari! ");
+    reply = greetingText + reply;
+  }
+  aiSession.lastTime = now;
+  aiSession.lastTopic = topic;
+  aiSession.greeted = true;
+
+  addAIMsg(reply, "bot");
+  aiHistory.push({ role:"assistant", content:reply });
+  aiBusy = false;
+}
+
+async function getAmaniReply(message){
+  const systemPrompt = `You are Amani AI, the friendly virtual assistant embedded inside the "Online Bus Booking System" — a Tanzanian bus ticket booking platform (companies: Amani Safaris, Blandina Safaris, Brian Safaris, Happynes Safaris, Machemba Safaris, all owned by Cybershield Safaris; towns served: Arusha, Dar es Salaam, Geita, Kahama, Mbeya).
+You help with booking, fares, routes, seats, payments, SMS confirmations, stands, offices, and the map. You are also a warm, witty, broadly knowledgeable companion for ANY topic — sports, tech, coding, music, jokes, riddles, proverbs, stories, schoolwork, or casual chat. Reply fluently in whatever language the person uses, matching their tone. Be eloquent but concise unless asked for depth.`;
+  try{
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 6000);
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
+      body: JSON.stringify({ model:"claude-sonnet-4-6", max_tokens:1000, system:systemPrompt, messages: aiHistory.slice(-16) })
+    });
+    clearTimeout(timeout);
+    const data = await response.json();
+    if(data && data.content){
+      const reply = data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
+      if(reply) return reply;
+    }
+    throw new Error("empty");
+  }catch(directErr){
+    if(AI_BACKEND_URL){
+      try{
+        const r2 = await fetch(AI_BACKEND_URL, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ message, lang }) });
+        const d2 = await r2.json();
+        if(d2 && d2.reply) return d2.reply;
+      }catch(backendErr){ /* fall through to local engine */ }
+    }
+    return localAmaniReply(message);
+  }
+}
+
+/* ---------- Amani AI's built-in multilingual knowledge base (always available, no internet needed) ---------- */
+const JOKES_EN = [
+  "Why don't scientists trust atoms? Because they make up everything!",
+  "I told my bus driver a joke about a broken vehicle... it didn't go anywhere.",
+  "Why did the coder go broke? Because he used up all his cache.",
+  "I'm reading a book about anti-gravity. It's impossible to put down.",
+  "Why don't skeletons fight each other? They don't have the guts.",
+  "Parallel lines have so much in common. It's a shame they'll never meet.",
+  "I would tell you a chemistry joke, but I know I wouldn't get a reaction.",
+  "My bus was late again — I think it's on 'African time', haha!"
+];
+const JOKES_SW = [
+  "Kwa nini simu ya Nokia haiogopi kuvunjika? Kwa sababu imezoea kudondoshwa tangu 2005!",
+  "Mtu mmoja aliuliza dereva wa basi, 'Tutafika lini?' Dereva akajibu, 'Tukiwa hai tu!'",
+  "Kwa nini kuku alikataa kuvuka barabara? Kwa sababu basi lilikuwa likija kwa kasi!",
+  "Mwalimu: 'Taja wanyama wawili wa Afrika.' Mwanafunzi: 'Simba mmoja na Simba mwingine.'",
+  "Rafiki yangu alisema anajua Kiingereza fasaha. Nikamuuliza 'How are you?' Akajibu 'Fine, thank you, poa sana!'",
+  "Kwa nini dereva wa daladala hapendi hesabu? Kwa sababu kila siku anahesabu 'nusu nauli, nusu nauli' bure!",
+  "Nilimuuliza AI atengeneze utani, akaniambia: 'Samahani, RAM yangu imejaa na kicheko chako!'",
+  "Mtoto aliuliza baba yake, 'Baba, safari ni nini?' Baba akajibu, 'Ni maisha yenyewe, mwanangu — hasa ukiwa kwenye basi la Cybershield!'"
+];
+const PROVERBS_SW = [
+  { p:"Haraka haraka haina baraka.", m:"Kufanya mambo kwa pupa mara nyingi huleta makosa — hata safari, ni bora kuipanga vizuri kuliko kuharakisha." },
+  { p:"Asiyesikia la mkuu huvunjika guu.", m:"Kutosikiliza ushauri wa wenye uzoefu kunaweza kukuletea madhara." },
+  { p:"Umoja ni nguvu, utengano ni udhaifu.", m:"Watu wakishikamana wanafanikiwa zaidi kuliko wakiwa peke yao." },
+  { p:"Mvumilivu hula mbivu.", m:"Uvumilivu huja na thawabu njema mwishoni." },
+  { p:"Chukua la mwenzio, mwenzio hachukui lako.", m:"Ushauri ni bure kupokea, lakini kutoa kwa wengine si lazima wakubali." },
+  { p:"Elimu ni bahari.", m:"Maarifa hayana mwisho — daima kuna kitu kipya kujifunza." },
+  { p:"Simba mwenda pole ndiye mla nyama.", m:"Uvumilivu na hekima huleta mafanikio zaidi kuliko haraka." },
+  { p:"Kuku havunji yeye mwenyewe kifaranga chake.", m:"Watu wa karibu (familia) mara nyingi hawakudhuru kimakusudi." },
+  { p:"Penye nia pana njia.", m:"Ukiwa na dhamira ya kweli, njia ya kufanikisha jambo itapatikana." },
+  { p:"Mgeni siku mbili, siku ya tatu mpe jembe.", m:"Ukarimu una mipaka — mgeni pia anapaswa kushiriki majukumu." }
+];
+const RIDDLES_EN = [
+  {q:"What has wheels and flies, but is not a plane?", a:"A garbage truck"},
+  {q:"I speak without a mouth and hear without ears. What am I?", a:"An echo"},
+  {q:"The more you take, the more you leave behind. What am I?", a:"Footsteps"},
+  {q:"What has many keys but can't open a single lock?", a:"A piano"}
+];
+const RIDDLES_SW = [
+  {q:"Kitu gani huingia mtini bila kuchoma moto lakini kinaunguza?", a:"Pilipili"},
+  {q:"Nyumba yangu haina mlango wala dirisha, lakini watu huingia na kutoka kila siku. Mimi ni nani?", a:"Gari/Basi"},
+  {q:"Kina mwanzo lakini hakina mwisho. Ni nini?", a:"Njia/Safari"},
+  {q:"Ninakwenda popote lakini sisogei mahali pangu. Mimi ni nani?", a:"Saa"}
+];
+const CAPITALS = {
+  tanzania:"Dodoma", kenya:"Nairobi", uganda:"Kampala", rwanda:"Kigali", burundi:"Gitega",
+  "south africa":"Pretoria", nigeria:"Abuja", egypt:"Cairo", ghana:"Accra", ethiopia:"Addis Ababa",
+  zambia:"Lusaka", malawi:"Lilongwe", mozambique:"Maputo", france:"Paris", germany:"Berlin",
+  "united kingdom":"London", usa:"Washington D.C.", "united states":"Washington D.C.",
+  china:"Beijing", india:"New Delhi", japan:"Tokyo", brazil:"Brasília", canada:"Ottawa", australia:"Canberra"
+};
+const STORIES_EN = [
+  "Once, a young trader in Arusha needed to reach Mbeya before sunrise for a big market day. He booked the last VIP seat online, got his SMS confirmation in seconds, and slept easy — no queue, no worry, just a ticket code and a bus waiting for him at dawn.",
+  "There was once a driver named Baraka who knew every pothole between Geita and Kahama by heart. Passengers said his bus always arrived exactly on time — not because he rushed, but because he never wasted a minute at any stop."
+];
+const STORIES_SW = [
+  "Hapo zamani, mfanyabiashara kijana kutoka Arusha alihitaji kufika Mbeya kabla jua kuchomoza kwa ajili ya soko kubwa. Alibuki kiti cha mwisho cha VIP mtandaoni, akapokea SMS ya uthibitisho kwa sekunde chache, akalala kwa amani — hakuna foleni, hakuna wasiwasi, tu namba ya tiketi na basi likimsubiri alfajiri.",
+  "Palikuwa na dereva mmoja jina lake Baraka, aliyejua kila shimo la barabara kati ya Geita na Kahama kwa moyo. Abiria walisema basi lake lilifika kwa wakati kila siku — si kwa kukimbia, bali kwa kutopoteza dakika hata moja popote alipoegesha."
+];
+
+const GREET_OTHER_LANG = {
+  fr:"Bonjour ! Je suis Amani AI. Je peux vous aider un peu en français, mais je suis surtout à l'aise en anglais et en swahili — n'hésitez pas à continuer dans l'une de ces langues pour une réponse plus complète.",
+  es:"¡Hola! Soy Amani AI. Puedo ayudar un poco en español, pero me manejo mucho mejor en inglés y swahili — puedes continuar en cualquiera de esos idiomas para una respuesta más completa.",
+  de:"Hallo! Ich bin Amani AI. Ich kann ein wenig Deutsch, aber Englisch und Swahili beherrsche ich viel besser — gerne dort weiterschreiben für eine vollständigere Antwort.",
+  pt:"Olá! Eu sou o Amani AI. Posso ajudar um pouco em português, mas domino muito melhor o inglês e o swahili — sinta-se à vontade para continuar num desses idiomas.",
+  ar:"مرحباً! أنا أماني الذكاء الاصطناعي. أفهم قليلاً من العربية، ولكن أنا أفضل بكثير في الإنجليزية والسواحيلية — لا تتردد في الاستمرار بأي منهما للحصول على إجابة كاملة.",
+  zh:"你好!我是Amani AI。我只懂一点中文,英语和斯瓦希里语会更流利——欢迎用其中一种语言继续提问,以获得更完整的回答。",
+  hi:"नमस्ते! मैं Amani AI हूँ। मुझे थोड़ी हिंदी आती है, लेकिन अंग्रेज़ी और स्वाहिली में मैं कहीं बेहतर जवाब दे सकता हूँ।"
+};
+
+function pickResponseLang(text){
+  if(/[\u4e00-\u9fff]/.test(text)) return "zh";
+  if(/[\u0600-\u06FF]/.test(text)) return "ar";
+  if(/[\u0900-\u097F]/.test(text)) return "hi";
+  const t = " "+text.toLowerCase()+" ";
+  const foreign = {
+    fr:[" bonjour "," merci "," s'il vous plait "," billet "," réserver "," au revoir "," comment "],
+    es:[" hola "," gracias "," cómo estás "," como estas "," billete "," reservar "," adiós "," por favor "],
+    de:[" hallo "," danke "," bitte "," fahrkarte "," tschüss "," wie geht "],
+    pt:[" olá "," ola "," obrigado "," obrigada "," bilhete "," reservar "]
+  };
+  for(const [code,words] of Object.entries(foreign)){
+    if(words.some(w=>t.includes(w))) return code;
+  }
+  const swWords = [" habari "," mambo "," asante "," karibu "," jambo "," poa "," tafadhali "," ndiyo "," hapana ",
+    " nipe "," niambie "," unapenda "," ninataka "," ninahitaji "," basi "," safari "," mpira "," muziki "," utani ",
+    " kitendawili "," methali "," hesabu "," vipi "," sawa "," rafiki "," kwa "," ya "," na "," za "," la "," ni "," wa "," sana ",
+    " kuhusu "," naomba "," nijuze "," kwenye "," kuwa "," kama "," nini "," au "," pia "," zaidi "," kila "," hii "," hivyo "," je "];
+  const enWords = [" hello "," hi "," thanks "," please "," ticket "," book "," the "," is "," are "," you "," what ",
+    " how "," tell "," give "," want "," need "," story "," joke "," music "," football "];
+  let swScore=0, enScore=0;
+  swWords.forEach(w=>{ if(t.includes(w)) swScore++; });
+  enWords.forEach(w=>{ if(t.includes(w)) enScore++; });
+  if(swScore>enScore) return "sw";
+  if(enScore>swScore) return "en";
+  return lang; // tie -> use current UI toggle as the deciding signal
+}
+
+function localAmaniReply(message){
+  const t = message.toLowerCase().trim();
+  const dl = pickResponseLang(message);
+  if(GREET_OTHER_LANG[dl]) return GREET_OTHER_LANG[dl];
+  const sw = dl === "sw";
+
+  // Simple arithmetic
+  if(/^[\d\s+\-*/().]+$/.test(t) && /\d/.test(t) && t.length < 40){
+    try{ const val = Function('"use strict";return ('+t+')')();
+      if(typeof val === "number" && isFinite(val)) return sw ? `Jibu ni: ${val}` : `The answer is: ${val}`;
+    }catch(e){}
+  }
+  // Capitals — robust substring match against known countries
+  if(/mji mkuu|capital/.test(t)){
+    for(const country in CAPITALS){
+      if(t.includes(country)) return sw ? `Mji mkuu wa ${country} ni ${CAPITALS[country]}.` : `The capital of ${country} is ${CAPITALS[country]}.`;
+    }
+  }
+  // Jokes
+  if(/joke|funny|utani|chekesha|nichekeshe/.test(t)){
+    const bank = sw ? JOKES_SW : JOKES_EN;
+    return bank[Math.floor(Math.random()*bank.length)];
+  }
+  // Proverbs
+  if(/methali|proverb|hekima ya kiswahili/.test(t)){
+    const pr = PROVERBS_SW[Math.floor(Math.random()*PROVERBS_SW.length)];
+    return `"${pr.p}"\n\n${sw?'Maana':'Meaning'}: ${pr.m}`;
+  }
+  // Riddles
+  if(/riddle|kitendawili/.test(t)){
+    const bank = sw ? RIDDLES_SW : RIDDLES_EN;
+    const r = bank[Math.floor(Math.random()*bank.length)];
+    return sw ? `Kitendawili: ${r.q}\n(Jibu: ${r.a})` : `Riddle: ${r.q}\n(Answer: ${r.a})`;
+  }
+  // Stories
+  if(/story|hadithi|niambie hadithi|tell me a story/.test(t)){
+    const bank = sw ? STORIES_SW : STORIES_EN;
+    return bank[Math.floor(Math.random()*bank.length)];
+  }
+  // Sports
+  if(/football|soccer|mpira|soka|simba sc|yanga|world cup|messi|ronaldo|afcon/.test(t))
+    return sw
+      ? "Mpira wa miguu Tanzania una mvuto mkubwa — hasa ushindani wa Simba SC na Young Africans (Yanga), unaojulikana kama 'Kariakoo Derby' au mechi za mabao ya moto! Kimataifa, mashabiki wengi hupenda kufuatilia Ligi ya Mabingwa Afrika na AFCON. Unapenda timu gani?"
+      : "Football runs deep in Tanzania — the Simba SC vs Young Africans (Yanga) rivalry is legendary, one of Africa's fiercest derbies. Globally, big talking points are always the World Cup, AFCON, and the Messi/Ronaldo debate. Who do you support?";
+  // Tech / coding
+  if(/coding|programming|javascript|python|html|css|programu|kompyuta|developer|software/.test(t))
+    return sw
+      ? "Naipenda teknolojia! Kwa kuanzia programu (coding), Python ni rahisi kuanzia kwa mwanzilishi, na JavaScript ndiyo inayotumika kwenye mfumo huu wa kubuki tiketi (frontend). Ukiwa na swali maalum la code, niambie lugha na tatizo lako hasa nitakusaidia kwa undani."
+      : "Tech talk, I love it! For beginners, Python is a gentle start, while JavaScript is exactly what powers this booking system's interface. If you've got a specific coding question, tell me the language and the exact problem and I'll dig in with you.";
+  // Music
+  if(/music|muziki|wimbo|song|nyimbo|bongo flava|diamond platnumz|harmonize|ali kiba|rayvanny/.test(t))
+    return sw
+      ? "Muziki wa Bongo Flava una historia nzuri — akina Diamond Platnumz, Harmonize, Ali Kiba na Rayvanny wamesambaza sauti ya Tanzania duniani kote. Siwezi kunakili maneno ya wimbo (hakimiliki), lakini nafurahi kuongea kuhusu wasanii, mitindo, au historia ya muziki wowote unaoupenda!"
+      : "The Bongo Flava scene has such a rich story — artists like Diamond Platnumz, Harmonize, Ali Kiba, and Rayvanny have carried Tanzanian sound worldwide. I can't reproduce song lyrics (copyright), but I'd love to chat about artists, genres, or music history you're into!";
+  // Capabilities
+  if(/what can you do|unaweza nini|uwezo wako|who are you|wewe ni nani/.test(t))
+    return sw
+      ? "Mimi ni Amani AI — naweza kukusaidia kubuki tiketi, kuangalia nauli/njia/muda, na pia kuongea kuhusu chochote: mpira, teknolojia, muziki, utani, methali, vitendawili, hadithi, hesabu ndogo, na mengine mengi. Niulize tu!"
+      : "I'm Amani AI — I can help you book tickets, check fares/routes/schedules, and also chat about pretty much anything: sports, tech, music, jokes, proverbs, riddles, short stories, quick maths, and more. Just ask!";
+  // Platform topics (booking, payment, sms, etc.)
+  if(/book|ticket|reserve|buki/.test(t))
+    return sw ? "Kubuki: fungua 'Tafuta Njia', chagua mji wa kuondoka na kwenda pamoja na tarehe, chagua safari, chagua kiti, kisha thibitisha na lipa. Utapokea SMS na namba ya tiketi papo hapo."
+              : "To book: go to 'Search Route', pick your From/To towns and date, choose a trip, select your seat, then confirm and pay. You'll get an SMS with your ticket code instantly.";
+  if(/pay|payment|mpesa|tigo|airtel|lipa/.test(t))
+    return sw ? "Tunapokea M-Pesa, Tigo Pesa, Airtel Money, na Visa/MasterCard. Chagua njia yako kwenye ukurasa wa kubuki — malipo yakithibitishwa utapokea SMS papo hapo."
+              : "We support M-Pesa, Tigo Pesa, Airtel Money, and Visa/MasterCard. Choose your method on the booking screen — payment confirmation triggers an instant SMS.";
+  if(/sms|message|ujumbe/.test(t))
+    return sw ? "Kila bukishi linalothibitishwa hutuma SMS moja kwa moja kwenye namba uliyotoa, ikiwa na namba ya tiketi, njia, kiti na kiasi kilicholipwa."
+              : "Every confirmed booking automatically sends an SMS to the phone number you provide, with your ticket code, route, seat number, and amount paid.";
+  if(/route|njia|arusha|dar |geita|kahama|mbeya/.test(t))
+    return sw ? "Kwa sasa tunahudumia Arusha, Dar es Salaam, Geita, Kahama na Mbeya. Angalia 'Njia' kwa umbali na muda, au 'Muda' kwa ratiba kamili."
+              : "We currently cover Arusha, Dar es Salaam, Geita, Kahama and Mbeya. Check 'Routes' for distances, or 'Time' for the full timetable.";
+  if(/fare|price|cost|bei|nauli/.test(t))
+    return sw ? "Nauli hutegemea njia na aina ya basi (VIP au Ordinary). Bei halisi ipo kwenye 'Tafuta Njia' au ratiba ya 'Muda'."
+              : "Fares depend on route and class (VIP or Ordinary). Exact prices are shown under 'Search Route' or the 'Time' timetable.";
+  if(/seat|kiti/.test(t))
+    return sw ? "Baada ya kuchagua safari utaona ramani ya viti — kijivu ni vilivyobukiwa, vyeupe viko wazi. Bonyeza kuchagua."
+              : "After picking a trip you'll see a live seat map — grey seats are booked, white ones are free. Tap to select.";
+  if(/refund|cancel|ghairi/.test(t))
+    return sw ? "Kwa kughairi, tembelea ofisi ya kubuki iliyo karibu au wasiliana na kampuni ya basi ukitumia namba ya tiketi."
+              : "For refunds or cancellations, visit the nearest booking office or contact the bus company with your ticket code.";
+  if(/office|stand|terminal|stendi|ofisi/.test(t))
+    return sw ? "Vituo na ofisi za kubuki za miji yote zimeorodheshwa chini ya 'Vituo' na 'Ofisi za Kubuki'."
+              : "Bus stands and booking offices for all towns are listed under 'Stands' and 'Booking Offices'.";
+  if(/hi|hello|hey|habari|mambo|hujambo/.test(t))
+    return sw ? "Habari! Mimi ni Amani AI. Niulize kuhusu njia, nauli, viti, malipo — au tu tuongee kuhusu chochote kingine!"
+              : "Hello! I'm Amani AI. Ask me about routes, fares, seats, payments — or let's just chat about anything else on your mind!";
+  if(/thank|asante|shukrani/.test(t))
+    return sw ? "Karibu sana! Nipo hapa wakati wowote unaponihitaji." : "You're very welcome! I'm here whenever you need me.";
+
+  // Smart-ish generic fallback that still feels attentive
+  return sw
+    ? `Swali zuri kuhusu "${message.length>40?message.slice(0,40)+'…':message}" — sielewi kikamilifu, lakini naweza kusaidia na bukishi, nauli, njia, ratiba, malipo, michezo, teknolojia, muziki, utani, methali, vitendawili, hadithi, na zaidi. Unaweza kunieleza tena kwa namna nyingine?`
+    : `Interesting question about "${message.length>40?message.slice(0,40)+'…':message}" — I didn't fully catch that, but I can help with bookings, fares, routes, schedules, payments, sports, tech, music, jokes, proverbs, riddles, stories, and more. Could you rephrase it a bit?`;
+}
+
+/* ============ Init ============ */
+function init(){
+  renderTabs();
+  renderFleetVisuals();
+  renderCompanies();
+  renderRoutesTable();
+  renderTimeTable();
+  renderStands();
+  renderOffices();
+  fillSelects();
+  renderTickets();
+  renderPublicFeedback();
+  applyI18n();
+}
+init();
+</script>
+</body>
+</html>
